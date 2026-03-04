@@ -2,4 +2,6 @@
     <string name="app_name">盛马商户端</string>
 
     <string name="shortcut_home_short">老平台入口</string>
+
+    <string name="clear_cache_short">清除缓存</string>
 </resources>

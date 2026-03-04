@@ -16,7 +16,7 @@
     <uses-feature android:name="android.hardware.camera.any"/>
 
 
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
 
     <application
@@ -31,6 +31,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="33"
         android:enableOnBackInvokedCallback="true"
+        android:requestLegacyExternalStorage="true"
         android:theme="@style/Theme.WebShell">
         <activity
             android:name=".MainActivity"
