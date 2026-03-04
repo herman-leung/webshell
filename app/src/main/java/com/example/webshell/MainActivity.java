@@ -14,11 +14,14 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
+import android.content.Intent;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private static final int REQUEST_CODE = 1001;
+
+//    private static final String DEFAULT_URL = "https://twm-h5.smshj.com";
+    private static final String DEFAULT_URL = "https://znh5.smshj.com";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +35,20 @@ public class MainActivity extends AppCompatActivity {
         initBackHandler();
 
 //        webView.loadUrl("https://twm-h5.smshj.com/");
-        webView.loadUrl("https://znh5.smshj.com");
+//        webView.loadUrl("https://znh5.smshj.com");
 //        webView.loadUrl("https://baidu.com");
+
+        // 处理intent参数（核心）
+        handleIntent(getIntent());
+    }
+
+    private void handleIntent(Intent intent) {
+        if(intent != null && intent.hasExtra("jump_url")) {
+            String targetUrl = intent.getStringExtra("jump_url");
+            webView.loadUrl(targetUrl);
+        } else {
+            webView.loadUrl(DEFAULT_URL);
+        }
     }
 
     private void initWebView() {
