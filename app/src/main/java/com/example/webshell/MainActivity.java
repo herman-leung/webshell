@@ -31,7 +31,10 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
-
+import android.provider.MediaStore;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import android.database.Cursor;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -41,10 +44,14 @@ public class MainActivity extends AppCompatActivity {
     //    private static final String DEFAULT_URL = "https://znh5.smshj.com";
 //    private static final String DEFAULT_URL = "http://192.168.1.46:5500/index.html";
     private static final String DEFAULT_URL = "https://192.168.1.46:8080/";
-    
+//    private static final String DEFAULT_URL = "https://twm-h5.smshj.com/";
+
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
     //    TODO:
     private static final String FILE_PROVIDER_AUTHORITY = "com.example.webshell.fileprovider";
+
+    // 添加相册选择器
+    private ActivityResultLauncher<Intent> galleryLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +63,110 @@ public class MainActivity extends AppCompatActivity {
         initWebView();
         checkPermission();
         initBackHandler();
-
+        // 初始化相册选择器
+        initGalleryLauncher();
         // 处理intent参数（核心）
         handleIntent(getIntent());
+    }
+
+    // 添加相册选择器初始化方法
+    private void initGalleryLauncher() {
+        galleryLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    Log.i("MainActivity", "相册返回 - ResultCode: " + result.getResultCode());
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        Log.i("MainActivity", "Intent data: " + (data != null ? "有数据" : "无数据"));
+                        if (data != null) {
+                            Uri uri = data.getData();
+                            Log.i("MainActivity", "选中的图片URI: " + uri);
+                            String imagePath = getPathFromUri(uri);
+                            Log.i("MainActivity", "转换后的路径: " + imagePath);
+                            if (imagePath != null && !imagePath.isEmpty()) {
+                                // 获取图片Base64
+                                String base64 = getImageBase64(imagePath);
+                                if (base64 != null && !base64.isEmpty()) {
+                                    // 获取图片类型
+                                    String imageType = imagePath.toLowerCase().endsWith(".jpg") || imagePath.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
+                                    // 直接传Base64给前端
+                                    String jsCode = "javascript:onGalleryImageSelected('data:image/" + imageType + ";base64," + base64 + "')";
+                                    Log.i("MainActivity", "执行JS回调，Base64长度: " + base64.length());
+                                    webView.evaluateJavascript(jsCode, null);
+                                    Toast.makeText(MainActivity.this, "图片已加载", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Log.e("MainActivity", "Base64转换失败");
+                                    Toast.makeText(MainActivity.this, "Base64转换失败", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Log.e("MainActivity", "图片路径为空");
+                                Toast.makeText(MainActivity.this, "获取图片路径失败", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    } else {
+                        Log.i("MainActivity", "用户取消选择相册");
+                    }
+                });
+    }
+
+    // 添加Uri转文件路径方法
+    private String getPathFromUri(Uri uri) {
+        String path = null;
+        String[] projection = {MediaStore.Images.Media.DATA};
+        Cursor cursor = null;
+        try {
+            Log.i("MainActivity", "开始查询URI: " + uri);
+            cursor = getContentResolver().query(uri, projection, null, null, null);
+            if (cursor != null) {
+                Log.i("MainActivity", "Cursor行数: " + cursor.getCount());
+                if (cursor.moveToFirst()) {
+                    int columnIndex = cursor.getColumnIndexOrThrow(projection[0]);
+                    path = cursor.getString(columnIndex);
+                    Log.i("MainActivity", "获取到路径: " + path);
+                } else {
+                    Log.w("MainActivity", "Cursor为空，未获取到数据");
+                }
+            } else {
+                Log.e("MainActivity", "Cursor查询结果为null");
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "getPathFromUri异常: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return path;
+    }
+
+    // 打开相册选择照片
+    public void openGallery() {
+        Log.i("MainActivity", "打开相册选择照片");
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        galleryLauncher.launch(intent);
+    }
+
+    // 获取图片Base64
+    private String getImageBase64(String imagePath) {
+        Log.i("MainActivity", "getImageBase64: " + imagePath);
+        try {
+            File file = new File(imagePath);
+            if (!file.exists()) {
+                Log.e("MainActivity", "文件不存在: " + imagePath);
+                return null;
+            }
+            
+            // 读取文件转Base64
+            byte[] fileContent = java.nio.file.Files.readAllBytes(file.toPath());
+            String base64 = android.util.Base64.encodeToString(fileContent, android.util.Base64.NO_WRAP);
+            Log.i("MainActivity", "Base64生成成功，长度: " + base64.length());
+            return base64;
+        } catch (Exception e) {
+            Log.e("MainActivity", "getImageBase64异常: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private void handleIntent(Intent intent) {
@@ -153,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
             permissions = new String[]{
                     Manifest.permission.CAMERA,
                     Manifest.permission.READ_MEDIA_IMAGES,
-                    // Manifest.permission.READ_MEDIA_VIDEO,
+                     Manifest.permission.READ_MEDIA_VIDEO,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE // 文件写入权限
             };
         } else { // Android 6-12
@@ -188,6 +296,13 @@ public class MainActivity extends AppCompatActivity {
         // 构造方法，传入Activity上下文
         public JsBridge(MainActivity activity) {
             this.mActivity = activity;
+        }
+
+        // 供H5调用：打开相册选择照片
+        @JavascriptInterface
+        public void selectPhoto() {
+            Log.i("MainActivity", "selectPhoto called");
+            mActivity.openGallery();
         }
 
         // 供H5调用的保存文件方法（必须加@JavascriptInterface注解）
