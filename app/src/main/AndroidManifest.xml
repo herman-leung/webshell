@@ -47,6 +47,16 @@
 <!--                android:name="android.app.shortcuts"-->
 <!--                android:resource="@xml/shortcuts" />-->
         </activity>
+            <!-- FileProvider 注册 -->
+    <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="com.example.webshell.fileprovider" 
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+            android:name="android.support.FILE_PROVIDER_PATHS"
+            android:resource="@xml/file_paths" /> 
+    </provider>
     </application>
 
 </manifest>

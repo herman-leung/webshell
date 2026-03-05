@@ -3,9 +3,12 @@ package com.example.webshell;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -18,6 +21,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -26,9 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import android.util.Log;
-import android.webkit.ConsoleMessage;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,9 +38,14 @@ public class MainActivity extends AppCompatActivity {
     // 权限请求码（统一用一个，避免冲突）
     private static final int REQUEST_CODE = 1001;
 
-    private static final String DEFAULT_URL = "https://znh5.smshj.com";
+    //    private static final String DEFAULT_URL = "https://znh5.smshj.com";
 //    private static final String DEFAULT_URL = "http://192.168.1.46:5500/index.html";
-//    private static final String DEFAULT_URL = "https://192.168.1.46:8080/";
+    private static final String DEFAULT_URL = "https://192.168.1.46:8080/";
+    
+    // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
+    //    TODO:
+    private static final String FILE_PROVIDER_AUTHORITY = "com.example.webshell.fileprovider";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,10 +56,6 @@ public class MainActivity extends AppCompatActivity {
         initWebView();
         checkPermission();
         initBackHandler();
-
-//        webView.loadUrl("https://twm-h5.smshj.com/");
-//        webView.loadUrl("https://znh5.smshj.com");
-//        webView.loadUrl("https://baidu.com");
 
         // 处理intent参数（核心）
         handleIntent(getIntent());
@@ -150,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
             permissions = new String[]{
                     Manifest.permission.CAMERA,
                     Manifest.permission.READ_MEDIA_IMAGES,
+                    // Manifest.permission.READ_MEDIA_VIDEO,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE // 文件写入权限
             };
         } else { // Android 6-12
@@ -189,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
         // 供H5调用的保存文件方法（必须加@JavascriptInterface注解）
         @JavascriptInterface
         public void saveFile(String fileUrl, String fileName) {
+            Log.i("MainActivity", "fileUrl" + fileUrl);
             // 子线程执行文件下载（避免阻塞主线程）
             new Thread(() -> {
                 try {
@@ -198,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
                         showToast("文件下载失败，请检查URL");
                         return;
                     }
+                    System.out.println("开始下载？？？？");
 
                     // 2. 保存文件到本地（手机下载目录）
                     boolean success = saveFileToLocal(fileData, fileName);
@@ -250,6 +256,55 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        /**
+         * 供H5调用：保存Base64编码的文件
+         * @param base64Data 纯Base64字符串（需去掉前缀如data:image/png;base64,）
+         * @param fileName 保存的文件名（如test.png、document.pdf）
+         */
+        @JavascriptInterface
+        public void saveBase64File(String base64Data, String fileName) {
+            Log.i("MainActivity", "开始保存Base64文件：" + fileName);
+            // 子线程执行文件保存（避免阻塞主线程）
+            new Thread(() -> {
+                try {
+                    // 1. 校验Base64数据
+                    if (base64Data == null || base64Data.isEmpty()) {
+                        showToast("Base64数据为空");
+                        callJsFunction("onFileSaveError('Base64数据为空')");
+                        return;
+                    }
+
+                    // 2. 去除Base64前缀（兼容H5可能传入的带前缀格式）
+                    String pureBase64 = base64Data;
+                    if (pureBase64.contains(",")) {
+                        pureBase64 = pureBase64.split(",")[1];
+                    }
+
+                    // 3. Base64解码为字节数组
+                    byte[] fileData = android.util.Base64.decode(pureBase64, android.util.Base64.DEFAULT);
+                    if (fileData.length == 0) {
+                        showToast("Base64解码失败");
+                        callJsFunction("onFileSaveError('Base64解码失败')");
+                        return;
+                    }
+
+                    // 4. 复用原有保存逻辑写入文件
+                    boolean success = saveFileToLocal(fileData, fileName);
+                    if (success) {
+                        showToast("Base64文件保存成功：/下载/" + fileName);
+                        callJsFunction("onFileSaveSuccess('" + fileName + "')");
+                    } else {
+                        showToast("Base64文件保存失败");
+                        callJsFunction("onFileSaveError('保存失败')");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    showToast("Base64保存异常：" + e.getMessage());
+                    callJsFunction("onFileSaveError('" + e.getMessage() + "')");
+                }
+            }).start();
+        }
+
         // 保存字节流到本地文件（下载目录）
         private boolean saveFileToLocal(byte[] data, String fileName) {
             try {
@@ -261,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // 创建文件
                 File file = new File(downloadDir, fileName);
-                FileOutputStream fos = new FileOutputStream(file);
+                FileOutputStream fos = new FileOutputStream(file, true);
                 fos.write(data);
                 fos.flush();
                 fos.close();
@@ -270,6 +325,111 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
                 return false;
             }
+        }
+
+        // ========== 核心修改：重写openDocument方法 ==========
+        @JavascriptInterface
+        public void openDocument(String filePath, String fileType) {
+            Log.i("MainActivity", "openDocument called with filePath: " + filePath + ", fileType: " + fileType);
+            // 1. 校验参数
+            if (filePath == null || filePath.isEmpty()) {
+                showToast("文件路径不能为空");
+                callJsFunction("onOpenDocumentError('文件路径不能为空')");
+                return;
+            }
+
+            // 2. 检查文件是否存在
+            File file = new File(filePath);
+            if(!file.exists()) {
+                showToast("文件不存在：" + filePath);
+                callJsFunction("onOpenDocumentError('文件不存在：" + filePath + "')");
+                return;
+            }
+
+            try {
+                // 3. 获取正确的MIME类型
+                String mimeType = getMimeType(fileType, filePath);
+                if (mimeType == null) {
+                    showToast("不支持的文件类型：" + fileType);
+                    callJsFunction("onOpenDocumentError('不支持的文件类型：" + fileType + "')");
+                    return;
+                }
+
+                // 4. 创建打开文件的Intent
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                Uri fileUri;
+
+                // 5. 适配Android 7.0+的FileProvider机制（核心修复）
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    // 使用FileProvider生成安全的Uri
+                    fileUri = FileProvider.getUriForFile(mActivity, FILE_PROVIDER_AUTHORITY, file);
+                    // 授予临时读取权限
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } else {
+                    // 7.0以下直接使用文件Uri
+                    fileUri = Uri.fromFile(file);
+                }
+
+                // 6. 设置Intent数据和类型
+                intent.setDataAndType(fileUri, mimeType);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                // 7. 检查是否有应用能处理该Intent（避免崩溃）
+                List<ResolveInfo> resolveInfos = mActivity.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+                if (resolveInfos.isEmpty()) {
+                    showToast("未找到可打开该文件的应用");
+                    callJsFunction("onOpenDocumentError('未找到可打开该文件的应用')");
+                    return;
+                }
+
+                // 8. 启动Intent打开文件
+                mActivity.startActivity(intent);
+                
+                // 9. 回调成功
+                showToast("文件打开成功");
+                callJsFunction("onOpenDocumentSuccess('" + fileNameFromPath(filePath) + "')");
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                String errorMsg = "打开文件失败：" + e.getMessage();
+                showToast(errorMsg);
+                callJsFunction("onOpenDocumentError('" + errorMsg + "')");
+            }
+        }
+
+        // 辅助方法：获取文件MIME类型（兼容fileType参数和文件后缀）
+        private String getMimeType(String fileType, String filePath) {
+            // 优先使用传入的fileType
+            if (fileType != null && !fileType.isEmpty()) {
+                switch (fileType.toLowerCase()) {
+                    case "doc": return "application/msword";
+                    case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    case "xls": return "application/vnd.ms-excel";
+                    case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    case "ppt": return "application/vnd.ms-powerpoint";
+                    case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                    case "pdf": return "application/pdf";
+                    case "txt": return "text/plain";
+                    case "jpg":
+                    case "jpeg": return "image/jpeg";
+                    case "png": return "image/png";
+                    case "gif": return "image/gif";
+                    case "mp4": return "video/mp4";
+                    case "zip": return "application/zip";
+                    case "rar": return "application/x-rar-compressed";
+                    default: break;
+                }
+            }
+
+            // 备用方案：从文件路径解析后缀
+            String extension = filePath.substring(filePath.lastIndexOf(".") + 1).toLowerCase();
+            return getMimeType(extension, "");
+        }
+
+        // 辅助方法：从路径提取文件名
+        private String fileNameFromPath(String filePath) {
+            int lastSlash = filePath.lastIndexOf(File.separator);
+            return lastSlash != -1 ? filePath.substring(lastSlash + 1) : filePath;
         }
 
         // 显示Toast（必须在主线程执行）

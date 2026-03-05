@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.webshellOld"
+        applicationId = "com.example.webshell"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
