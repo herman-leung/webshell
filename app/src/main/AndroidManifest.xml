@@ -48,15 +48,28 @@
 <!--                android:resource="@xml/shortcuts" />-->
         </activity>
             <!-- FileProvider 注册 -->
-    <provider
-        android:name="androidx.core.content.FileProvider"
-        android:authorities="com.example.webshell.fileprovider" 
-        android:exported="false"
-        android:grantUriPermissions="true">
-        <meta-data
-            android:name="android.support.FILE_PROVIDER_PATHS"
-            android:resource="@xml/file_paths" /> 
-    </provider>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.webshell.fileprovider" 
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" /> 
+        </provider>
+
+        <!-- ZXing扫码Activity声明 -->
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="portrait"
+            android:exported="true"
+            tools:replace="android:screenOrientation,android:exported" />
+
+        <!-- ML Kit扫码Activity声明 -->
+        <activity
+            android:name=".ScanActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
     </application>
 
 </manifest>

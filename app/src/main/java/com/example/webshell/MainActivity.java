@@ -35,6 +35,7 @@ import android.provider.MediaStore;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import android.database.Cursor;
+import com.google.zxing.integration.android.IntentIntegrator;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -43,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
     //    private static final String DEFAULT_URL = "https://znh5.smshj.com";
 //    private static final String DEFAULT_URL = "http://192.168.1.46:5500/index.html";
-    private static final String DEFAULT_URL = "https://192.168.1.46:8080/";
-//    private static final String DEFAULT_URL = "https://twm-h5.smshj.com/";
+    // private static final String DEFAULT_URL = "https://192.168.1.46:80/";
+   private static final String DEFAULT_URL = "https://twm-h5.smshj.com/";
 
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
     //    TODO:
@@ -52,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
 
     // 添加相册选择器
     private ActivityResultLauncher<Intent> galleryLauncher;
+    // 添加拍照选择器
+    private ActivityResultLauncher<Intent> cameraLauncher;
+    // 添加扫码选择器
+    private ActivityResultLauncher<Intent> scanLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +70,10 @@ public class MainActivity extends AppCompatActivity {
         initBackHandler();
         // 初始化相册选择器
         initGalleryLauncher();
+        // 初始化拍照选择器
+        initCameraLauncher();
+        // 初始化扫码选择器
+        initScanLauncher();
         // 处理intent参数（核心）
         handleIntent(getIntent());
     }
@@ -108,6 +117,70 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    // 添加拍照选择器初始化方法
+    private void initCameraLauncher() {
+        cameraLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    Log.i("MainActivity", "拍照返回 - ResultCode: " + result.getResultCode());
+                    if (result.getResultCode() == RESULT_OK) {
+                        // 获取拍照的图片路径
+                        String imagePath = getCameraImagePath();
+                        if (imagePath != null && !imagePath.isEmpty()) {
+                            // 获取图片Base64
+                            String base64 = getImageBase64(imagePath);
+                            if (base64 != null && !base64.isEmpty()) {
+                                // 获取图片类型
+                                String imageType = imagePath.toLowerCase().endsWith(".jpg") || imagePath.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
+                                // 直接传Base64给前端
+                                String jsCode = "javascript:onCameraImageCaptured('data:image/" + imageType + ";base64," + base64 + "')";
+                                Log.i("MainActivity", "执行JS回调，Base64长度: " + base64.length());
+                                webView.evaluateJavascript(jsCode, null);
+                                Toast.makeText(MainActivity.this, "拍照成功", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Log.e("MainActivity", "Base64转换失败");
+                                Toast.makeText(MainActivity.this, "Base64转换失败", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Log.e("MainActivity", "拍照图片路径为空");
+                            Toast.makeText(MainActivity.this, "获取拍照图片失败", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Log.i("MainActivity", "用户取消拍照");
+                    }
+                });
+    }
+
+    // 添加扫码选择器初始化方法
+    private void initScanLauncher() {
+        scanLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    Log.i("MainActivity", "扫码返回 - ResultCode: " + result.getResultCode());
+                    try {
+                        Intent data = result.getData();
+                        if (data != null && result.getResultCode() == RESULT_OK) {
+                            String scanContent = data.getStringExtra("SCAN_RESULT");
+                            if (scanContent != null && !scanContent.isEmpty()) {
+                                Log.i("MainActivity", "扫码结果: " + scanContent);
+                                // 传结果给前端
+                                String jsCode = "javascript:onScanResult('" + scanContent + "')";
+                                webView.evaluateJavascript(jsCode, null);
+                                // TODO: 隐藏提示？
+                                // Toast.makeText(MainActivity.this, "扫码成功", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Log.i("MainActivity", "扫码内容为空");
+                                Toast.makeText(MainActivity.this, "扫码失败", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Log.i("MainActivity", "用户取消扫码或无数据");
+                            Toast.makeText(MainActivity.this, "扫码取消", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        Log.e("MainActivity", "处理扫码结果异常", e);
+                        Toast.makeText(MainActivity.this, "扫码结果处理失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
     // 添加Uri转文件路径方法
     private String getPathFromUri(Uri uri) {
         String path = null;
@@ -145,6 +218,59 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         intent.setType("image/*");
         galleryLauncher.launch(intent);
+    }
+
+    // 打开相机拍照
+    public void openCamera() {
+        Log.i("MainActivity", "打开相机拍照");
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // 创建临时文件来保存拍照图片
+        File photoFile = createImageFile();
+        if (photoFile != null) {
+            Uri photoURI = FileProvider.getUriForFile(this, FILE_PROVIDER_AUTHORITY, photoFile);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+            cameraLauncher.launch(intent);
+        } else {
+            Toast.makeText(this, "创建图片文件失败", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // 创建图片文件
+    private File createImageFile() {
+        try {
+            // 创建文件名
+            String timeStamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+            String imageFileName = "JPEG_" + timeStamp + "_";
+            File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            File image = File.createTempFile(imageFileName, ".jpg", storageDir);
+            // 保存文件路径
+            currentPhotoPath = image.getAbsolutePath();
+            return image;
+        } catch (IOException e) {
+            Log.e("MainActivity", "创建图片文件失败", e);
+            return null;
+        }
+    }
+
+    // 当前拍照图片路径
+    private String currentPhotoPath;
+
+    // 获取拍照图片路径
+    private String getCameraImagePath() {
+        return currentPhotoPath;
+    }
+
+    // 打开扫码器
+    public void openScanner() {
+        Log.i("MainActivity", "打开扫码器");
+        try {
+            // 使用ML Kit扫码（支持变焦）
+            Intent scanIntent = new Intent(this, ScanActivity.class);
+            scanLauncher.launch(scanIntent);
+        } catch (Exception e) {
+            Log.e("MainActivity", "打开扫码器失败", e);
+            Toast.makeText(this, "扫码功能异常：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     // 获取图片Base64
@@ -303,6 +429,20 @@ public class MainActivity extends AppCompatActivity {
         public void selectPhoto() {
             Log.i("MainActivity", "selectPhoto called");
             mActivity.openGallery();
+        }
+
+        // 供H5调用：打开相机拍照
+        @JavascriptInterface
+        public void takePhoto() {
+            Log.i("MainActivity", "takePhoto called");
+            mActivity.openCamera();
+        }
+
+        // 供H5调用：打开扫码器
+        @JavascriptInterface
+        public void scanCode() {
+            Log.i("MainActivity", "scanCode called");
+            mActivity.openScanner();
         }
 
         // 供H5调用的保存文件方法（必须加@JavascriptInterface注解）

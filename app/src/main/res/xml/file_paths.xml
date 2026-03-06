@@ -4,4 +4,6 @@
     <external-path name="downloads" path="Download/"/>
     <!-- 允许访问外部存储根目录（可选） -->
     <external-path name="external_files" path="."/>
+    <!-- 允许访问应用外部文件目录 -->
+    <external-files-path name="external_files" path="."/>
 </paths>
