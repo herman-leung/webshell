@@ -641,7 +641,7 @@ public class MainActivity extends AppCompatActivity {
                 mActivity.startActivity(intent);
                 
                 // 9. 回调成功
-                showToast("文件打开成功");
+                // showToast("文件打开成功");
                 callJsFunction("onOpenDocumentSuccess('" + fileNameFromPath(filePath) + "')");
 
             } catch (Exception e) {
