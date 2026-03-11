@@ -1,4 +1,4 @@
-package com.example.webshell;
+package com.shengma.webshell;
 
 import android.Manifest;
 import android.content.Intent;
@@ -37,7 +37,6 @@ import android.provider.MediaStore;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import android.database.Cursor;
-import com.google.zxing.integration.android.IntentIntegrator;
 
 import retrofit2.Retrofit;
 import retrofit2.Call;
@@ -49,7 +48,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.view.View;
 import android.view.LayoutInflater;
 import android.widget.Button;
@@ -57,11 +55,7 @@ import android.widget.TextView;
 
 import android.provider.Settings;
 import androidx.annotation.NonNull;
-import okhttp3.OkHttpClient;
-import java.io.IOException;
-import java.io.File;
-import java.io.FileOutputStream;
-import okhttp3.Request;
+
 // import okhttp3.Callback;
 public class MainActivity extends AppCompatActivity {
 
@@ -83,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
     //    TODO:
-    private static final String FILE_PROVIDER_AUTHORITY = "com.example.webshell.fileprovider";
+    private static final String FILE_PROVIDER_AUTHORITY = "com.shengma.webshell.fileprovider";
 
     // 权限请求码
     private static final int REQUEST_PERMISSION_CODE = 1001;

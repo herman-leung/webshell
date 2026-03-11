@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.webshell"
+    namespace = "com.shengma.webshell"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.webshell"
+        applicationId = "com.shengma.webshell"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

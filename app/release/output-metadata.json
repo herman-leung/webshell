@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.webshell",
+  "applicationId": "com.shengma.webshell",
   "variantName": "release",
   "elements": [
     {

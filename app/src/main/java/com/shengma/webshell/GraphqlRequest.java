@@ -1,4 +1,4 @@
-package com.example.webshell;
+package com.shengma.webshell;
 
 public class GraphqlRequest {
     private String operationName;
