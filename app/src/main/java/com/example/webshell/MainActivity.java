@@ -833,7 +833,11 @@ public class MainActivity extends AppCompatActivity {
                         // 初始化下载文件位置（使用URL中的文件名）
                         try {
                             String fileName = OSS_BASE_URL.substring(OSS_BASE_URL.lastIndexOf('/') + 1);
-                            apkFile = new File(getExternalFilesDir(null), fileName);
+                            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                            if (!downloadDir.exists()) {
+                                downloadDir.mkdirs(); // 创建目录
+                            }
+                            apkFile = new File(downloadDir, fileName);
                             Log.i(TAG, "apkFile initialized: " + apkFile.getAbsolutePath());
                         } catch (Exception e) {
                             Log.e(TAG, "初始化apkFile失败", e);
