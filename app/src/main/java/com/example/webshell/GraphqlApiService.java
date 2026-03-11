@@ -10,24 +10,25 @@ import java.util.Map;
 
 // GraphQL 接口定义
 public interface GraphqlApiService {
+//         * @param accept            对应 curl 的 accept 头
+//     * @param acceptLanguage    对应 accept-language 头
+//     * @param authorization     对应 authorization 头（Bearer token）
+//            * @param cacheControl      对应 cache-control 头
+//     * @param contentType       对应 content-type 头
+//     * @param origin            对应 origin 头
+//     * @param pragma            对应 pragma 头
+//     * @param priority          对应 priority 头
+//     * @param referer           对应 referer 头
+//     * @param secChUa           对应 sec-ch-ua 头
+//     * @param secChUaMobile     对应 sec-ch-ua-mobile 头
+//     * @param secChUaPlatform   对应 sec-ch-ua-platform 头
+//     * @param secFetchDest      对应 sec-fetch-dest 头
+//     * @param secFetchMode      对应 sec-fetch-mode 头
+//     * @param secFetchSite      对应 sec-fetch-site 头
     /**
      * 发送 GraphQL 请求
-     * @param accept            对应 curl 的 accept 头
-     * @param acceptLanguage    对应 accept-language 头
-     * @param authorization     对应 authorization 头（Bearer token）
-     * @param cacheControl      对应 cache-control 头
-     * @param contentType       对应 content-type 头
-     * @param origin            对应 origin 头
-     * @param pragma            对应 pragma 头
-     * @param priority          对应 priority 头
-     * @param referer           对应 referer 头
-     * @param secChUa           对应 sec-ch-ua 头
-     * @param secChUaMobile     对应 sec-ch-ua-mobile 头
-     * @param secChUaPlatform   对应 sec-ch-ua-platform 头
-     * @param secFetchDest      对应 sec-fetch-dest 头
-     * @param secFetchMode      对应 sec-fetch-mode 头
-     * @param secFetchSite      对应 sec-fetch-site 头
-     * @param userAgent         对应 user-agent 头
+
+     * @param headers         对应 user-agent 头
      * @param requestBody       请求体（对应 --data-raw）
      * @return 响应结果
      */
