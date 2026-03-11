@@ -1,31 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<!-- 弹窗根布局：圆角 + 白色背景 + 阴影 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_bg"
+    android:orientation="vertical"
+    android:padding="20dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-            <!-- 2. 触发弹窗的按钮（可选，也可以在 WebView 加载完成/出错时自动弹弹窗） -->
-    <!-- <Button
-        android:id="@+id/btn_show_dialog"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="显示弹窗"
-        android:layout_margin="10dp" /> -->
-
-
-          <!-- 弹窗标题 -->
+    <!-- 弹窗标题 -->
     <TextView
         android:id="@+id/tv_dialog_title"
         android:layout_width="match_parent"
@@ -58,4 +40,4 @@
         android:background="@drawable/btn_confirm_bg"
         android:elevation="0dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

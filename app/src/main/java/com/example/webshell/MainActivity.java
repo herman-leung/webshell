@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -36,6 +38,31 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import android.database.Cursor;
 import com.google.zxing.integration.android.IntentIntegrator;
+
+import retrofit2.Retrofit;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.view.View;
+import android.view.LayoutInflater;
+import android.widget.Button;
+import android.widget.TextView;
+
+import android.provider.Settings;
+import androidx.annotation.NonNull;
+import okhttp3.OkHttpClient;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileOutputStream;
+import okhttp3.Request;
+// import okhttp3.Callback;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -47,9 +74,25 @@ public class MainActivity extends AppCompatActivity {
     // private static final String DEFAULT_URL = "https://192.168.1.46:80/";
    private static final String DEFAULT_URL = "https://twm-h5.smshj.com/";
 
+    private static final String BASE_APK_URL = "https://kmgapi.test.smshj.com/";
+    private static final String TAG = "GraphqlDemo";
+    private static final String TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzczMTA3NzY5fQ.7MF69Q7XJCSrE5qL-2wms3yw6D17r5sTHo7SYGVJMao";
+
+    // TODO: apk文件名
+    private static final String APK_FILE_NAME = "测试as_apk"; // 从接口获取的文件名（全局变量）
+
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
     //    TODO:
     private static final String FILE_PROVIDER_AUTHORITY = "com.example.webshell.fileprovider";
+
+    // 权限请求码
+    private static final int REQUEST_PERMISSION_CODE = 1001;
+    // 安装权限请求码（Android 8.0+）
+    private static final int REQUEST_INSTALL_PERMISSION_CODE = 1002;
+    
+    private String OSS_BASE_URL = ""; // 从接口获取的OSS地址（全局变量）
+    // APK 保存路径（应用内部存储，无需额外权限）
+    private File apkFile;
 
     // 添加相册选择器
     private ActivityResultLauncher<Intent> galleryLauncher;
@@ -76,6 +119,13 @@ public class MainActivity extends AppCompatActivity {
         initScanLauncher();
         // 处理intent参数（核心）
         handleIntent(getIntent());
+
+        try{
+            getAPKFile(APK_FILE_NAME);
+
+        } catch (Exception e) {
+            Log.e(TAG, "获取APK文件失败", e);
+        }
     }
 
     // 添加相册选择器初始化方法
@@ -695,6 +745,358 @@ public class MainActivity extends AppCompatActivity {
         // 调用H5的JS函数（回调结果）
         private void callJsFunction(String jsCode) {
             mActivity.runOnUiThread(() -> webView.evaluateJavascript("javascript:" + jsCode, null));
+        }
+    }
+
+
+    private void getAPKFile(String fileName) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_APK_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        GraphqlApiService apiService = retrofit.create(GraphqlApiService.class);
+        // 3. 构建请求参数
+        // 3.1 构建 GraphQL 查询语句（和 curl 中的 query 一致）
+        // 给查询语句加上名字，和我们在 GraphqlRequest 中传入的 operationName 保持一致
+        String query = "query getDeviceFirmware($type: Int, $pageSize: Int, $currentPage: Int, $name: String) {\n" +
+                "  result: deviceFirmwareWithPagination(\n" +
+                "    type: $type\n" +
+                "    pageSize: $pageSize\n" +
+                "    currentPage: $currentPage\n" +
+                "    name: $name\n" +
+                "  ) {\n" +
+                "    nodes {\n" +
+                "      id\n" +
+                "      name\n" +
+                "      fileName\n" +
+                "      verify\n" +
+                "      fileUrl\n" +
+                "      versionName\n" +
+                "      type\n" +
+                "      desc\n" +
+                "    }\n" +
+                "    pageInfo {\n" +
+                "      totalCount\n" +
+                "      pageSize\n" +
+                "      currentPage\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+
+        // 3.2 构建 variables 参数（和 curl 中的 variables 一致）
+        GraphqlRequest.Variables variables = new GraphqlRequest.Variables(10, 1, fileName);
+
+        // 3.3 构建请求体
+        GraphqlRequest requestBody = new GraphqlRequest("getDeviceFirmware", variables, query);
+
+        // 4. 构建并发送请求
+        // 先准备一个 HeaderMap，方便后续如果要改头只需调整这里
+        java.util.Map<String, String> headers = new java.util.HashMap<>();
+        headers.put("accept", "*/*");
+        headers.put("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+        headers.put("authorization", "Bearer " + TOKEN);
+        headers.put("cache-control", "no-cache");
+        headers.put("content-type", "application/json");
+        headers.put("origin", "https://kmg.test.smshj.com");
+        headers.put("pragma", "no-cache");
+        headers.put("priority", "u=1, i");
+        headers.put("referer", "https://kmg.test.smshj.com/");
+        headers.put("sec-ch-ua", "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"");
+        headers.put("sec-ch-ua-mobile", "?0");
+        headers.put("sec-ch-ua-platform", "\"Windows\"");
+        headers.put("sec-fetch-dest", "empty");
+        headers.put("sec-fetch-mode", "cors");
+        headers.put("sec-fetch-site", "same-site");
+        headers.put("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0");
+
+        Call<GraphqlResponse> call = apiService.sendGraphql(headers, requestBody);
+
+        // 5. 异步发送请求（Retrofit 自动处理子线程，回调切主线程）
+        call.enqueue(new Callback<GraphqlResponse>() {
+            @Override
+            public void onResponse(Call<GraphqlResponse> call, Response<GraphqlResponse> response) {
+                // 请求成功（HTTP 状态码 200+）
+                if (response.isSuccessful() && response.body() != null) {
+                    GraphqlResponse graphqlResponse = response.body();
+                    // 获取固件列表
+                    GraphqlResponse.Result result = graphqlResponse.getData() != null ? graphqlResponse.getData().getResult() : null;
+                    Log.i(TAG, "请求成功，解析结果中..." + " " + result + " " + response.code());
+                    if (result != null && result.getNodes() != null) {
+                        // 遍历固件列表（示例：打印第一个固件名称）
+                        String firstFirmwareName = result.getNodes().get(0).getName();
+                        Log.d(TAG, "第一个固件名称：" + firstFirmwareName);
+                        Log.d(TAG, "第一个固件 文件名：" + result.getNodes().get(0).getFileName());
+                        Log.d(TAG, "第一个固件 版本名：" + result.getNodes().get(0).getVersionName());
+                        Log.d(TAG, "第一个固件 文件地址：" + result.getNodes().get(0).getFileUrl());
+                        OSS_BASE_URL = result.getNodes().get(0).getFileUrl();
+                        // 初始化下载文件位置（使用URL中的文件名）
+                        try {
+                            String fileName = OSS_BASE_URL.substring(OSS_BASE_URL.lastIndexOf('/') + 1);
+                            apkFile = new File(getExternalFilesDir(null), fileName);
+                            Log.i(TAG, "apkFile initialized: " + apkFile.getAbsolutePath());
+                        } catch (Exception e) {
+                            Log.e(TAG, "初始化apkFile失败", e);
+                        }
+                        // 更新 UI（比如 Toast 显示）
+                        Toast.makeText(MainActivity.this, "获取到新版本：" + firstFirmwareName, Toast.LENGTH_SHORT).show();
+                        // 获取分页总数
+                        int totalCount = result.getPageInfo().getTotalCount();
+                        Log.d(TAG, "固件总数：" + totalCount);
+
+                        showConfirmOnlyDialog();
+                    }
+                } else {
+                    // 响应失败（比如 HTTP 401/404/500）
+                    Log.e(TAG, "响应失败：状态码=" + response.code());
+                    Toast.makeText(MainActivity.this, "响应失败：" + response.code(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GraphqlResponse> call, Throwable t) {
+                // 请求失败（网络错误、URL 错误等）
+                Log.e(TAG, "请求失败：" + t.getMessage(), t);
+                Toast.makeText(MainActivity.this, "请求失败：" + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+
+    /**
+     * 显示「只能点确定关闭」的弹窗
+     */
+    private void showConfirmOnlyDialog() {
+         // 1. 加载自定义布局
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_custom_layout, null);
+
+        // 2. 构建弹窗（隐藏系统默认标题，使用自定义布局）
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        // 核心：禁止外部关闭（空白处/返回键无效）
+        builder.setCancelable(false);
+
+        // 3. 创建弹窗并设置背景透明（避免系统默认的方形背景）
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent); // 关键：透明背景
+
+        // 4. 绑定确定按钮点击事件
+        Button btnConfirm = dialogView.findViewById(R.id.btn_dialog_confirm);
+        btnConfirm.setOnClickListener(v -> {
+            // 点击确定后的逻辑
+        // dialog.dismiss(); // 关闭弹窗
+        // Toast.makeText(MainActivity.this, "已点击确定", Toast.LENGTH_SHORT).show();
+            // 下载
+             checkPermissionAndDownload();
+        });
+
+        // 可选：动态修改弹窗标题/内容
+        TextView tvTitle = dialogView.findViewById(R.id.tv_dialog_title);
+        TextView tvContent = dialogView.findViewById(R.id.tv_dialog_content);
+        tvTitle.setText("提示"); // 自定义标题
+        tvContent.setText("有新版本发布，请更新安装后使用"); // 自定义内容
+
+        // 5. 显示弹窗
+        dialog.show();
+
+        // 可选：设置弹窗宽度（比如占屏幕80%）
+        dialog.getWindow().setLayout(
+                (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+        );
+    }
+    private void checkPermissionAndDownload() {
+        Log.i(TAG, "检查权限并下载更新");
+        // 1. 检查 Android 8.0+ 安装未知来源应用权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                PackageManager pm = getPackageManager();
+                if (pm != null) {
+                    // 修复：通过反射调用 canRequestPackageInstalls()，避免编译版本兼容问题
+                    boolean canInstall = false;
+                    try {
+                        Method method = pm.getClass().getMethod("canRequestPackageInstalls");
+                        canInstall = (boolean) method.invoke(pm);
+                    } catch (NoSuchMethodException e) {
+                        // 极端情况：设备系统无此方法，默认视为无权限
+                        Log.w(TAG, "设备不支持 canRequestPackageInstalls 方法", e);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        Log.e(TAG, "调用 canRequestPackageInstalls 方法失败", e);
+                    }
+
+                    if (!canInstall) {
+                        // 跳转到设置页面开启安装权限
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:" + getPackageName()));
+                        // 兼容 Android X：如果是 AppCompatActivity，用 startActivityForResult
+                        startActivityForResult(intent, REQUEST_INSTALL_PERMISSION_CODE);
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "检查安装权限时出错", e);
+            }
+        }
+
+        // 2. 检查 Android 10 以下存储权限（Android 10+ 用应用内部存储无需此权限）
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_PERMISSION_CODE);
+                return;
+            }
+        }
+
+        // 权限全部通过，开始下载
+        downloadApkFromOSS();
+    }
+
+    /**
+     * 从 OSS 下载 APK 文件
+     */
+    private void downloadApkFromOSS() {
+        Toast.makeText(this, "开始下载APK...", Toast.LENGTH_SHORT).show();
+
+        // 先确保 apkFile 已经被设置
+        if (apkFile == null) {
+            try {
+                String fileName = OSS_BASE_URL != null && OSS_BASE_URL.contains("/")
+                        ? OSS_BASE_URL.substring(OSS_BASE_URL.lastIndexOf('/') + 1)
+                        : "update.apk";
+                apkFile = new File(getExternalFilesDir(null), fileName);
+                Log.i(TAG, "apkFile lazy-init: " + apkFile.getAbsolutePath());
+            } catch (Exception e) {
+                Log.e(TAG, "初始化apkFile失败", e);
+            }
+        }
+
+        // 创建 OkHttp 请求
+        Log.i(TAG, "OSS_BASE_URL: " + OSS_BASE_URL);
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(OSS_BASE_URL)
+                .build();
+
+        // 异步下载（避免阻塞主线程）
+        client.newCall(request).enqueue(new okhttp3.Callback(){
+            @Override
+            public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
+                // 下载失败（主线程更新UI）
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "下载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "下载失败", e);
+                });
+            }
+
+            @Override
+            public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "下载失败：响应码" + response.code(), Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                // 读取响应流并写入文件
+                InputStream inputStream = null;
+                FileOutputStream outputStream = null;
+                try {
+                    inputStream = response.body().byteStream();
+                    Log.i(TAG, "inputStream: " + inputStream);
+                    Log.i(TAG, "apkFile: " + apkFile);
+                    outputStream = new FileOutputStream(apkFile);
+                    Log.i(TAG, "outputStream: " + outputStream);
+                    byte[] buffer = new byte[4096];
+                    int len;
+                    while ((len = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, len);
+                    }
+                    outputStream.flush();
+
+                    // 下载完成，主线程调用安装程序
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "下载完成，开始安装...", Toast.LENGTH_SHORT).show();
+                        installApk();
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "文件写入失败：" + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    Log.e(TAG, "文件写入失败", e);
+                } finally {
+                    // 关闭流
+                    if (inputStream != null) inputStream.close();
+                    if (outputStream != null) outputStream.close();
+                }
+            }
+        });
+    }
+
+     /**
+     * 调用系统安装程序安装 APK
+     */
+    private void installApk() {
+        if (!apkFile.exists()) {
+            Toast.makeText(this, "APK文件不存在", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent installIntent = new Intent(Intent.ACTION_VIEW);
+        Uri apkUri;
+
+        // Android 7.0+ 必须用 FileProvider 封装 Uri
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            apkUri = FileProvider.getUriForFile(this,
+                    getPackageName() + ".fileprovider", // 和Manifest中的authorities一致
+                    apkFile);
+            // 授予临时读取权限
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } else {
+            apkUri = Uri.fromFile(apkFile);
+        }
+
+        // 设置安装参数
+        installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // 启动安装界面
+        try {
+            startActivity(installIntent);
+        } catch (Exception e) {
+            Toast.makeText(this, "安装失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "安装失败", e);
+        }
+    }
+
+    /**
+     * 权限请求/安装权限设置回调
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_INSTALL_PERMISSION_CODE) {
+            // 检查安装权限是否开启
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (getPackageManager().canRequestPackageInstalls()) {
+//                    checkPermissionAndDownload(); // 权限已开，继续下载
+                } else {
+                    Toast.makeText(this, "请开启安装未知来源应用权限", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    /**
+     * 存储权限请求回调
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                checkPermissionAndDownload(); // 权限已开，继续下载
+            } else {
+                Toast.makeText(this, "请开启存储权限", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
