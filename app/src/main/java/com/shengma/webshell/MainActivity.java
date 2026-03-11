@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
     //    private static final String DEFAULT_URL = "https://znh5.smshj.com";
 //    private static final String DEFAULT_URL = "http://192.168.1.46:5500/index.html";
     // private static final String DEFAULT_URL = "https://192.168.1.46:80/";
-   private static final String DEFAULT_URL = "https://twm-h5.smshj.com/";
+   private static String DEFAULT_URL = "https://twm-h5.smshj.com/";
 
     private static final String BASE_APK_URL = "https://kmgapi.test.smshj.com/";
     private static final String TAG = "GraphqlDemo";
@@ -104,6 +104,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        int len = getPackageName().split("\\.").length;
+        String packageName = getPackageName().split("\\.")[len - 1]; // 获取包名并转换为大写
+        if(packageName.equals("webshell")) { // 新平台
+            // 新平台
+            DEFAULT_URL = "https://twm-h5.smshj.com/";
+        } else {
+            // 老平台
+            DEFAULT_URL = "https://znh5.smshj.com";
+        }
+
 
         webView = new WebView(this);
         setContentView(webView);
@@ -121,8 +131,6 @@ public class MainActivity extends AppCompatActivity {
         handleIntent(getIntent());
 
         try{
-            int len = getPackageName().split("\\.").length;
-            String packageName = getPackageName().split("\\.")[len - 1]; // 获取包名并转换为大写
             if(packageName.equals("webshell")) { // 新平台
                 getAPKFile(APK_FILE_NAME);
             } else {
