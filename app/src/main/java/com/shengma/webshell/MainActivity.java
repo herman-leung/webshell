@@ -1,6 +1,7 @@
 package com.shengma.webshell;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -58,6 +60,8 @@ import androidx.annotation.NonNull;
 import java.io.OutputStream;
 import android.content.ContentValues;
 // import okhttp3.Callback;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageInfo;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -74,7 +78,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzczMTA3NzY5fQ.7MF69Q7XJCSrE5qL-2wms3yw6D17r5sTHo7SYGVJMao";
 
     // TODO: apk文件名
-    private static final String APK_FILE_NAME = "测试as_apk"; // 从接口获取的文件名（全局变量）
+    private static final String APK_FILE_NAME = "新平台外贸apk"; // 从接口获取的文件名（全局变量）
+    private static final String APK_FILE_NAME_OLD = "老平台外贸apk"; // 从接口获取的文件名（全局变量）
 
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
     //    TODO:
@@ -116,7 +121,13 @@ public class MainActivity extends AppCompatActivity {
         handleIntent(getIntent());
 
         try{
-            getAPKFile(APK_FILE_NAME);
+            int len = getPackageName().split("\\.").length;
+            String packageName = getPackageName().split("\\.")[len - 1]; // 获取包名并转换为大写
+            if(packageName.equals("webshell")) { // 新平台
+                getAPKFile(APK_FILE_NAME);
+            } else {
+                getAPKFile(APK_FILE_NAME_OLD);
+            }
 
         } catch (Exception e) {
             Log.e(TAG, "获取APK文件失败", e);
@@ -609,11 +620,7 @@ public class MainActivity extends AppCompatActivity {
         private boolean saveFileToLocal(byte[] data, String fileName) {
             try {
                 // 获取安卓公共下载目录
-                File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                if (!downloadDir.exists()) {
-                    downloadDir.mkdirs(); // 创建目录
-                }
-
+                File downloadDir = getDownloadDirectory();
                 // 创建文件
                 File file = new File(downloadDir, fileName);
                 FileOutputStream fos = new FileOutputStream(file, true);
@@ -779,11 +786,29 @@ public class MainActivity extends AppCompatActivity {
             return getContentResolver().openOutputStream(uri);
         } else {
             // 9 及以下仍旧使用传统路径（需 WRITE_EXTERNAL_STORAGE 权限）
-            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File downloadDir = getDownloadDirectory();
             if (!downloadDir.exists()) downloadDir.mkdirs();
             File file = new File(downloadDir, fileName);
             return new FileOutputStream(file);
         }
+    }
+
+    // 获取版本名称
+    public String getVersionName() {
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return String.valueOf(packageInfo.versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // 获取包名
+    public String getPackageName() {
+        Context context = getApplicationContext();
+        // Log.i(TAG, "包名： " + context.getPackageName());
+        return context.getPackageName();
     }
 
     // 从接口获取APK文件信息并下载（核心方法）
@@ -860,7 +885,7 @@ public class MainActivity extends AppCompatActivity {
                     // 获取固件列表
                     GraphqlResponse.Result result = graphqlResponse.getData() != null ? graphqlResponse.getData().getResult() : null;
                     Log.i(TAG, "请求成功，解析结果中..." + " " + result + " " + response.code());
-                    if (result != null && result.getNodes() != null) {
+                    if (result != null && result.getNodes() != null && !result.getNodes().isEmpty()) {
                         // 遍历固件列表（示例：打印第一个固件名称）
                         String firstFirmwareName = result.getNodes().get(0).getName();
                         Log.d(TAG, "第一个固件名称：" + firstFirmwareName);
@@ -879,12 +904,22 @@ public class MainActivity extends AppCompatActivity {
                             Log.e(TAG, "初始化apkFile失败", e);
                         }
                         // 更新 UI（比如 Toast 显示）
-                        Toast.makeText(MainActivity.this, "获取到新版本：" + firstFirmwareName, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(MainActivity.this, "获取到新版本：" + firstFirmwareName, Toast.LENGTH_SHORT).show();
                         // 获取分页总数
                         int totalCount = result.getPageInfo().getTotalCount();
                         Log.d(TAG, "固件总数：" + totalCount);
 
-                        showConfirmOnlyDialog();
+                        // BigDecimal versionName = new BigDecimal(result.getNodes().get(0).getVersionName());
+                        // BigDecimal currentVersionName = new BigDecimal(getVersionName());
+                        String versionName = result.getNodes().get(0).getVersionName();
+                        String currentVersionName = getVersionName();
+                        Log.i(TAG, "新版版本号：" + versionName);
+                        Log.i(TAG, "当前版本号：" + currentVersionName);
+                        if (!versionName.equals(currentVersionName)) {
+                            showConfirmOnlyDialog();
+                        }
+                    } else {
+                        Log.w(TAG, "响应成功但数据为空");
                     }
                 } else {
                     // 响应失败（比如 HTTP 401/404/500）
