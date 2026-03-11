@@ -55,7 +55,8 @@ import android.widget.TextView;
 
 import android.provider.Settings;
 import androidx.annotation.NonNull;
-
+import java.io.OutputStream;
+import android.content.ContentValues;
 // import okhttp3.Callback;
 public class MainActivity extends AppCompatActivity {
 
@@ -742,7 +743,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // ======== 新增：兼容下载目录的方法 ========
+    private File getDownloadDirectory() {
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        // 9 及以下仍然使用公共下载目录
+        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        //     // Android 10+ 使用应用专属下载目录，无需请求外部存储权限
+        //     dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        //     if (dir != null && !dir.exists()) {
+        //         dir.mkdirs();
+        //     }
+        // } else {
+        // }
+        return dir;
+    }
 
+    /**
+     * Android 10+ 将文件保存到公共 Download 目录。
+     * 返回一个可写的 OutputStream；调用端负责写入并关闭流。
+     */
+    private OutputStream openPublicDownloadStream(String fileName) throws IOException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+            values.put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive");
+            values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) {
+                throw new IOException("无法创建 MediaStore 条目");
+            }
+            return getContentResolver().openOutputStream(uri);
+        } else {
+            // 9 及以下仍旧使用传统路径（需 WRITE_EXTERNAL_STORAGE 权限）
+            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (!downloadDir.exists()) downloadDir.mkdirs();
+            File file = new File(downloadDir, fileName);
+            return new FileOutputStream(file);
+        }
+    }
+
+    // 从接口获取APK文件信息并下载（核心方法）
     private void getAPKFile(String fileName) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_APK_URL)
@@ -827,10 +871,8 @@ public class MainActivity extends AppCompatActivity {
                         // 初始化下载文件位置（使用URL中的文件名）
                         try {
                             String fileName = OSS_BASE_URL.substring(OSS_BASE_URL.lastIndexOf('/') + 1);
-                            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                            if (!downloadDir.exists()) {
-                                downloadDir.mkdirs(); // 创建目录
-                            }
+                            // 同样使用兼容方法获取目录
+                            File downloadDir = getDownloadDirectory();
                             apkFile = new File(downloadDir, fileName);
                             Log.i(TAG, "apkFile initialized: " + apkFile.getAbsolutePath());
                         } catch (Exception e) {
@@ -964,7 +1006,8 @@ public class MainActivity extends AppCompatActivity {
                 String fileName = OSS_BASE_URL != null && OSS_BASE_URL.contains("/")
                         ? OSS_BASE_URL.substring(OSS_BASE_URL.lastIndexOf('/') + 1)
                         : "update.apk";
-                apkFile = new File(getExternalFilesDir(null), fileName);
+                File downloadDir = getDownloadDirectory();
+                apkFile = new File(downloadDir, fileName);
                 Log.i(TAG, "apkFile lazy-init: " + apkFile.getAbsolutePath());
             } catch (Exception e) {
                 Log.e(TAG, "初始化apkFile失败", e);
@@ -1003,7 +1046,7 @@ public class MainActivity extends AppCompatActivity {
                     inputStream = response.body().byteStream();
                     Log.i(TAG, "inputStream: " + inputStream);
                     Log.i(TAG, "apkFile: " + apkFile);
-                    outputStream = new FileOutputStream(apkFile);
+                    outputStream = (FileOutputStream)openPublicDownloadStream(apkFile.getName());
                     Log.i(TAG, "outputStream: " + outputStream);
                     byte[] buffer = new byte[4096];
                     int len;
@@ -1075,7 +1118,7 @@ public class MainActivity extends AppCompatActivity {
             // 检查安装权限是否开启
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (getPackageManager().canRequestPackageInstalls()) {
-//                    checkPermissionAndDownload(); // 权限已开，继续下载
+                //    checkPermissionAndDownload(); // 权限已开，继续下载
                 } else {
                     Toast.makeText(this, "请开启安装未知来源应用权限", Toast.LENGTH_SHORT).show();
                 }
@@ -1091,7 +1134,7 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                checkPermissionAndDownload(); // 权限已开，继续下载
+            //    checkPermissionAndDownload(); // 权限已开，继续下载
             } else {
                 Toast.makeText(this, "请开启存储权限", Toast.LENGTH_SHORT).show();
             }
