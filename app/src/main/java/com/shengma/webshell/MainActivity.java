@@ -54,6 +54,7 @@ import android.view.View;
 import android.view.LayoutInflater;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 
 import android.provider.Settings;
 import androidx.annotation.NonNull;
@@ -318,6 +319,10 @@ public class MainActivity extends AppCompatActivity {
 
     // 当前拍照图片路径
     private String currentPhotoPath;
+    
+    // 待处理的Base64文件数据和文件名
+    public String pendingSaveBase64Data;
+    public String pendingSaveFileName;
 
     // 获取拍照图片路径
     private String getCameraImagePath() {
@@ -583,6 +588,28 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void saveBase64File(String base64Data, String fileName) {
             Log.i("MainActivity", "开始保存Base64文件：" + fileName);
+            
+            // 先检查存储权限
+            if (ActivityCompat.checkSelfPermission(mActivity,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                // 权限不足，请求权限
+                ActivityCompat.requestPermissions(mActivity,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_PERMISSION_CODE);
+                
+                // 保存参数，以便权限授予后继续执行
+                mActivity.pendingSaveBase64Data = base64Data;
+                mActivity.pendingSaveFileName = fileName;
+                
+                return;
+            }
+            
+            // 权限已获取，执行保存操作
+            performSaveBase64File(base64Data, fileName);
+        }
+        
+        // 执行保存Base64文件的操作
+        private void performSaveBase64File(String base64Data, String fileName) {
             // 子线程执行文件保存（避免阻塞主线程）
             new Thread(() -> {
                 try {
@@ -947,6 +974,12 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    // 弹窗实例，用于在下载过程中更新UI
+    private AlertDialog updateDialog;
+    // 进度条和进度文本引用
+    private ProgressBar progressBar;
+    private TextView tvProgress;
+
     /**
      * 显示「只能点确定关闭」的弹窗
      */
@@ -961,17 +994,18 @@ public class MainActivity extends AppCompatActivity {
         builder.setCancelable(false);
 
         // 3. 创建弹窗并设置背景透明（避免系统默认的方形背景）
-        AlertDialog dialog = builder.create();
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent); // 关键：透明背景
+        updateDialog = builder.create();
+        updateDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent); // 关键：透明背景
 
         // 4. 绑定确定按钮点击事件
         Button btnConfirm = dialogView.findViewById(R.id.btn_dialog_confirm);
+        // 获取进度条和进度文本引用
+        progressBar = dialogView.findViewById(R.id.progress_bar);
+        tvProgress = dialogView.findViewById(R.id.tv_progress);
+        
         btnConfirm.setOnClickListener(v -> {
-            // 点击确定后的逻辑
-        // dialog.dismiss(); // 关闭弹窗
-        // Toast.makeText(MainActivity.this, "已点击确定", Toast.LENGTH_SHORT).show();
-            // 下载
-             checkPermissionAndDownload();
+            // 先检查权限，权限通过后再显示进度条
+            checkPermissionAndDownload();
         });
 
         // 可选：动态修改弹窗标题/内容
@@ -981,10 +1015,10 @@ public class MainActivity extends AppCompatActivity {
         tvContent.setText("有新版本发布，请更新安装后使用"); // 自定义内容
 
         // 5. 显示弹窗
-        dialog.show();
+        updateDialog.show();
 
         // 可选：设置弹窗宽度（比如占屏幕80%）
-        dialog.getWindow().setLayout(
+        updateDialog.getWindow().setLayout(
                 (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
                 android.view.WindowManager.LayoutParams.WRAP_CONTENT
         );
@@ -1022,18 +1056,28 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 2. 检查 Android 10 以下存储权限（Android 10+ 用应用内部存储无需此权限）
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        REQUEST_PERMISSION_CODE);
-                return;
-            }
+        // 2. 检查存储权限（所有Android版本都需要检查）
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_PERMISSION_CODE);
+            return;
         }
 
-        // 权限全部通过，开始下载
+        // 权限全部通过，显示进度条并开始下载
+        if (updateDialog != null && updateDialog.isShowing()) {
+            Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+            if (btnConfirm != null) {
+                // 禁用确定按钮，防止重复点击
+                btnConfirm.setEnabled(false);
+                btnConfirm.setText("下载中...");
+            }
+            // 显示进度条
+            if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+            if (tvProgress != null) tvProgress.setVisibility(View.VISIBLE);
+        }
+        // 开始下载
         downloadApkFromOSS();
     }
 
@@ -1072,13 +1116,37 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, "下载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
                     Log.e(TAG, "下载失败", e);
+                    // 恢复确定按钮状态
+                    if (updateDialog != null && updateDialog.isShowing()) {
+                        Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+                        if (btnConfirm != null) {
+                            btnConfirm.setEnabled(true);
+                            btnConfirm.setText("确定");
+                        }
+                        // 隐藏进度条
+                        if (progressBar != null) progressBar.setVisibility(View.GONE);
+                        if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                    }
                 });
             }
 
             @Override
             public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "下载失败：响应码" + response.code(), Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "下载失败：响应码" + response.code(), Toast.LENGTH_SHORT).show();
+                        // 恢复确定按钮状态
+                        if (updateDialog != null && updateDialog.isShowing()) {
+                            Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+                            if (btnConfirm != null) {
+                                btnConfirm.setEnabled(true);
+                                btnConfirm.setText("确定");
+                            }
+                            // 隐藏进度条
+                            if (progressBar != null) progressBar.setVisibility(View.GONE);
+                            if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                        }
+                    });
                     return;
                 }
 
@@ -1086,6 +1154,8 @@ public class MainActivity extends AppCompatActivity {
                 InputStream inputStream = null;
                 FileOutputStream outputStream = null;
                 try {
+                    long responseLength = response.body() != null ? response.body().contentLength() : -1;
+                    Log.i(TAG, "响应长度: " + responseLength);
                     inputStream = response.body().byteStream();
                     Log.i(TAG, "inputStream: " + inputStream);
                     Log.i(TAG, "apkFile: " + apkFile);
@@ -1093,19 +1163,64 @@ public class MainActivity extends AppCompatActivity {
                     Log.i(TAG, "outputStream: " + outputStream);
                     byte[] buffer = new byte[4096];
                     int len;
+                    long downloaded = 0; // 已下载字节数
                     while ((len = inputStream.read(buffer)) != -1) {
+                        downloaded += len;
+                        Log.i(TAG, "下载进度: " + downloaded + "/" + responseLength);
                         outputStream.write(buffer, 0, len);
+                        
+                        // 更新进度条
+                        if (responseLength > 0 && progressBar != null && tvProgress != null) {
+                            final int progress = (int) ((downloaded * 100) / responseLength);
+                            runOnUiThread(() -> {
+                                progressBar.setProgress(progress);
+                                tvProgress.setText(progress + "%");
+                            });
+                        }
                     }
                     outputStream.flush();
 
                     // 下载完成，主线程调用安装程序
                     runOnUiThread(() -> {
+                        // 隐藏进度条，恢复按钮状态
+                        if (progressBar != null) progressBar.setVisibility(View.GONE);
+                        if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                        if (updateDialog != null && updateDialog.isShowing()) {
+                            Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+                            if (btnConfirm != null) {
+                                btnConfirm.setEnabled(true);
+                                btnConfirm.setText("安装");
+                                btnConfirm.setOnClickListener(v -> {
+                                    // 安装APK
+                                    installApk();
+                                    // 关闭弹窗
+                                    // updateDialog.dismiss();
+                                });
+                            }
+                        }
+                    });
+                    runOnUiThread(() -> {
                         Toast.makeText(MainActivity.this, "下载完成，开始安装...", Toast.LENGTH_SHORT).show();
                         installApk();
                     });
                 } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "文件写入失败：" + e.getMessage(), Toast.LENGTH_SHORT).show());
-                    Log.e(TAG, "文件写入失败", e);
+                    e.printStackTrace();
+                    Log.e(TAG, "下载失败", e);
+                    // 主线程提示
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "下载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        // 恢复确定按钮状态
+                        if (updateDialog != null && updateDialog.isShowing()) {
+                            Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+                            if (btnConfirm != null) {
+                                btnConfirm.setEnabled(true);
+                                btnConfirm.setText("确定");
+                            }
+                            // 隐藏进度条
+                            if (progressBar != null) progressBar.setVisibility(View.GONE);
+                            if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                        }
+                    });
                 } finally {
                     // 关闭流
                     if (inputStream != null) inputStream.close();
@@ -1161,13 +1276,15 @@ public class MainActivity extends AppCompatActivity {
             // 检查安装权限是否开启
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (getPackageManager().canRequestPackageInstalls()) {
-                //    checkPermissionAndDownload(); // 权限已开，继续下载
+                   checkPermissionAndDownload(); // 权限已开，继续下载
                 } else {
                     Toast.makeText(this, "请开启安装未知来源应用权限", Toast.LENGTH_SHORT).show();
                 }
             }
         }
     }
+
+    // public void showPermissionOfS
 
     /**
      * 存储权限请求回调
@@ -1177,9 +1294,32 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            //    checkPermissionAndDownload(); // 权限已开，继续下载
+                // ?
             } else {
-                Toast.makeText(this, "请开启存储权限", Toast.LENGTH_SHORT).show();
+                // 显示提示并引导用户前往设置页面
+                new AlertDialog.Builder(this)
+                        .setTitle("权限提示")
+                        .setMessage("需要存储权限才能下载更新，请在设置中开启")
+                        .setPositiveButton("去设置", (dialog, which) -> {
+                            // 跳转到应用设置页面
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            startActivityForResult(intent, REQUEST_PERMISSION_CODE);
+                        })
+                        .setNegativeButton("取消", (dialog, which) -> {
+                            // 恢复弹窗按钮状态
+                            if (updateDialog != null && updateDialog.isShowing()) {
+                                Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
+                                if (btnConfirm != null) {
+                                    btnConfirm.setEnabled(true);
+                                    btnConfirm.setText("确定");
+                                }
+                                // 隐藏进度条
+                                if (progressBar != null) progressBar.setVisibility(View.GONE);
+                                if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                            }
+                        })
+                        .show();
             }
         }
     }
