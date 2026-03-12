@@ -201,5 +201,9 @@ public class ScanActivity extends AppCompatActivity {
         if (cameraExecutor != null) {
             cameraExecutor.shutdown();
         }
+        // 显式解绑相机资源
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
     }
 }

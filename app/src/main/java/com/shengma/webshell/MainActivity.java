@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(webView);
 
         initWebView();
-        checkPermission();
+        // checkPermission();
         initBackHandler();
         // 初始化相册选择器
         initGalleryLauncher();
@@ -323,6 +323,9 @@ public class MainActivity extends AppCompatActivity {
     // 待处理的Base64文件数据和文件名
     public String pendingSaveBase64Data;
     public String pendingSaveFileName;
+    
+    // 待处理的操作类型
+    public String pendingOperation; // 可能的值：scanCode, saveBase64File, takePhoto, selectPhoto
 
     // 获取拍照图片路径
     private String getCameraImagePath() {
@@ -424,6 +427,44 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                     }
+
+// 【deprecated】检查是否有相机权限
+                    // // 检查是否有相机权限
+                    // if (ContextCompat.checkSelfPermission(MainActivity.this, 
+                    //         Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    //     // 有相机权限，授予 WebView 权限
+                    //     for (String resource : request.getResources()) {
+                    //         if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                    //             request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                    //             return;
+                    //         }
+                    //     }
+                    // } else {
+                    //     // 没有相机权限，检查是否已经拒绝过权限
+                    //     if (!ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, 
+                    //             Manifest.permission.CAMERA)) {
+                    //         // 用户已经拒绝过权限并勾选了"不再询问"，弹出提示引导用户去设置页面
+                    //         new AlertDialog.Builder(MainActivity.this)
+                    //                 .setTitle("摄像头权限")
+                    //                 .setMessage("需要摄像头权限才能使用此功能，请在设置中开启")
+                    //                 .setPositiveButton("去设置", (dialog, which) -> {
+                    //                     // 跳转到应用设置页面
+                    //                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    //                     intent.setData(Uri.parse("package:" + getPackageName()));
+                    //                     startActivityForResult(intent, REQUEST_PERMISSION_CODE);
+                    //                 })
+                    //                 .setNegativeButton("取消", null)
+                    //                 .show();
+                    //     } else {
+                    //         // 首次请求权限，正常请求
+                    //         ActivityCompat.requestPermissions(MainActivity.this, 
+                    //                 new String[]{Manifest.permission.CAMERA}, 
+                    //                 REQUEST_PERMISSION_CODE);
+                    //     }
+                    // }
+                    // // 拒绝 WebView 权限请求
+                    // request.deny();
+
                 });
             }
         });
@@ -497,13 +538,75 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void selectPhoto() {
             Log.i("MainActivity", "selectPhoto called");
+            
+            // 检查读取存储权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+ 检查读取媒体图片权限
+                if (ActivityCompat.checkSelfPermission(mActivity,
+                        Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                    // 权限不足，请求权限
+                    ActivityCompat.requestPermissions(mActivity,
+                            new String[]{Manifest.permission.READ_MEDIA_IMAGES},
+                            REQUEST_PERMISSION_CODE);
+                    
+                    // 保存操作类型，以便权限授予后继续执行
+                    mActivity.pendingOperation = "selectPhoto";
+                    return;
+                }
+            } else {
+                // Android 12以下检查读取存储权限
+                if (ActivityCompat.checkSelfPermission(mActivity,
+                        Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    // 权限不足，请求权限
+                    ActivityCompat.requestPermissions(mActivity,
+                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                            REQUEST_PERMISSION_CODE);
+                    
+                    // 保存操作类型，以便权限授予后继续执行
+                    mActivity.pendingOperation = "selectPhoto";
+                    return;
+                }
+            }
+            
             mActivity.openGallery();
+        }
+
+                                    
+
+        @JavascriptInterface
+        public boolean checkCameraPermission() {
+            Context context = getApplicationContext();
+             return ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) 
+                == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void h5ApplyCameraPermission() {
+            ActivityCompat.requestPermissions(
+                MainActivity.this,
+                new String[]{Manifest.permission.CAMERA},
+                REQUEST_PERMISSION_CODE
+            );
         }
 
         // 供H5调用：打开相机拍照
         @JavascriptInterface
         public void takePhoto() {
             Log.i("MainActivity", "takePhoto called");
+            
+            // 检查相机权限
+            if (ActivityCompat.checkSelfPermission(mActivity,
+                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                // 权限不足，请求权限
+                ActivityCompat.requestPermissions(mActivity,
+                        new String[]{Manifest.permission.CAMERA},
+                        REQUEST_PERMISSION_CODE);
+                
+                // 保存操作类型，以便权限授予后继续执行
+                mActivity.pendingOperation = "takePhoto";
+                return;
+            }
+            
             mActivity.openCamera();
         }
 
@@ -511,6 +614,20 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void scanCode() {
             Log.i("MainActivity", "scanCode called");
+            
+            // 检查相机权限
+            if (ActivityCompat.checkSelfPermission(mActivity,
+                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                // 权限不足，请求权限
+                ActivityCompat.requestPermissions(mActivity,
+                        new String[]{Manifest.permission.CAMERA},
+                        REQUEST_PERMISSION_CODE);
+                
+                // 保存操作类型，以便权限授予后继续执行
+                mActivity.pendingOperation = "scanCode";
+                return;
+            }
+            
             mActivity.openScanner();
         }
 
@@ -589,19 +706,22 @@ public class MainActivity extends AppCompatActivity {
         public void saveBase64File(String base64Data, String fileName) {
             Log.i("MainActivity", "开始保存Base64文件：" + fileName);
             
-            // 先检查存储权限
-            if (ActivityCompat.checkSelfPermission(mActivity,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                // 权限不足，请求权限
-                ActivityCompat.requestPermissions(mActivity,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        REQUEST_PERMISSION_CODE);
-                
-                // 保存参数，以便权限授予后继续执行
-                mActivity.pendingSaveBase64Data = base64Data;
-                mActivity.pendingSaveFileName = fileName;
-                
-                return;
+            // 检查存储权限（Android 10以下需要）
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                if (ActivityCompat.checkSelfPermission(mActivity,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    // 权限不足，请求权限
+                    ActivityCompat.requestPermissions(mActivity,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_PERMISSION_CODE);
+                    
+                    // 保存参数，以便权限授予后继续执行
+                    mActivity.pendingSaveBase64Data = base64Data;
+                    mActivity.pendingSaveFileName = fileName;
+                    mActivity.pendingOperation = "saveBase64File";
+                    
+                    return;
+                }
             }
             
             // 权限已获取，执行保存操作
@@ -1284,8 +1404,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // public void showPermissionOfS
-
     /**
      * 存储权限请求回调
      */
@@ -1294,32 +1412,66 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // ?
-            } else {
-                // 显示提示并引导用户前往设置页面
-                new AlertDialog.Builder(this)
-                        .setTitle("权限提示")
-                        .setMessage("需要存储权限才能下载更新，请在设置中开启")
-                        .setPositiveButton("去设置", (dialog, which) -> {
-                            // 跳转到应用设置页面
-                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            intent.setData(Uri.parse("package:" + getPackageName()));
-                            startActivityForResult(intent, REQUEST_PERMISSION_CODE);
-                        })
-                        .setNegativeButton("取消", (dialog, which) -> {
-                            // 恢复弹窗按钮状态
-                            if (updateDialog != null && updateDialog.isShowing()) {
-                                Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
-                                if (btnConfirm != null) {
-                                    btnConfirm.setEnabled(true);
-                                    btnConfirm.setText("确定");
-                                }
-                                // 隐藏进度条
-                                if (progressBar != null) progressBar.setVisibility(View.GONE);
-                                if (tvProgress != null) tvProgress.setVisibility(View.GONE);
+                // 权限已授予，检查是否有待处理的操作
+                if (pendingOperation != null) {
+                    switch (pendingOperation) {
+                        case "scanCode":
+                            openScanner();
+                            break;
+                        case "saveBase64File":
+                            if (pendingSaveBase64Data != null && pendingSaveFileName != null) {
+                                new JsBridge(this).performSaveBase64File(pendingSaveBase64Data, pendingSaveFileName);
+                                // 清空待处理数据
+                                pendingSaveBase64Data = null;
+                                pendingSaveFileName = null;
                             }
-                        })
-                        .show();
+                            break;
+                        case "takePhoto":
+                            openCamera();
+                            break;
+                        case "selectPhoto":
+                            openGallery();
+                            break;
+                    }
+                    // 清空待处理操作
+                    pendingOperation = null;
+                }
+            } else {
+                // 检查是否勾选了"不再询问"
+                boolean showRationale = ActivityCompat.shouldShowRequestPermissionRationale(this, permissions[0]);
+                if (!showRationale) {
+                    // 用户勾选了"不再询问"，引导用户去设置页面
+                    String permissionName = "权限";
+                    if (permissions[0].equals(Manifest.permission.CAMERA)) {
+                        permissionName = "相机权限";
+                    } else if (permissions[0].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) || 
+                               permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                               permissions[0].equals(Manifest.permission.READ_MEDIA_IMAGES)) {
+                        permissionName = "存储权限";
+                    }
+                    
+                    new AlertDialog.Builder(this)
+                            .setTitle("权限提示")
+                            .setMessage("需要" + permissionName + "才能执行此操作，请在设置中开启")
+                            .setPositiveButton("去设置", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                intent.setData(Uri.parse("package:" + getPackageName()));
+                                startActivityForResult(intent, REQUEST_PERMISSION_CODE);
+                            })
+                            .setNegativeButton("取消", null)
+                            .show();
+                } else {
+                    // 用户拒绝了权限但未勾选"不再询问"
+                    String permissionName = "权限";
+                    if (permissions[0].equals(Manifest.permission.CAMERA)) {
+                        permissionName = "相机权限";
+                    } else if (permissions[0].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) || 
+                               permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                               permissions[0].equals(Manifest.permission.READ_MEDIA_IMAGES)) {
+                        permissionName = "存储权限";
+                    }
+                    Toast.makeText(this, "需要" + permissionName + "才能执行此操作", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
