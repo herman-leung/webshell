@@ -1134,7 +1134,7 @@ public class MainActivity extends AppCompatActivity {
         TextView tvTitle = dialogView.findViewById(R.id.tv_dialog_title);
         TextView tvContent = dialogView.findViewById(R.id.tv_dialog_content);
         tvTitle.setText("提示"); // 自定义标题
-        tvContent.setText("有新版本发布，请更新安装后使用"); // 自定义内容
+        tvContent.setText("有新版本发布，请更新安装后使用!!!"); // 自定义内容
 
         // 5. 显示弹窗
         updateDialog.show();
