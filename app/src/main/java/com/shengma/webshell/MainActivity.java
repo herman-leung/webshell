@@ -83,8 +83,10 @@ public class MainActivity extends AppCompatActivity {
     private static final String APK_FILE_NAME_OLD = "老平台外贸apk"; // 从接口获取的文件名（全局变量）
 
     // ========== 新增：FileProvider 授权的包名后缀（需和xml配置一致） ==========
-    //    TODO:
-    private static final String FILE_PROVIDER_AUTHORITY = "com.shengma.webshell.fileprovider";
+    // 使用 getPackageName() 动态获取包名，支持多 flavor
+    private String getFileProviderAuthority() {
+        return getPackageName() + ".fileprovider";
+    }
 
     // 权限请求码
     private static final int REQUEST_PERMISSION_CODE = 1001;
@@ -292,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
         // 创建临时文件来保存拍照图片
         File photoFile = createImageFile();
         if (photoFile != null) {
-            Uri photoURI = FileProvider.getUriForFile(this, FILE_PROVIDER_AUTHORITY, photoFile);
+            Uri photoURI = FileProvider.getUriForFile(this, getFileProviderAuthority(), photoFile);
             intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
             cameraLauncher.launch(intent);
         } else {
@@ -824,7 +826,7 @@ public class MainActivity extends AppCompatActivity {
                 // 5. 适配Android 7.0+的FileProvider机制（核心修复）
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     // 使用FileProvider生成安全的Uri
-                    fileUri = FileProvider.getUriForFile(mActivity, FILE_PROVIDER_AUTHORITY, file);
+                    fileUri = FileProvider.getUriForFile(mActivity, mActivity.getFileProviderAuthority(), file);
                     // 授予临时读取权限
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 } else {
@@ -1365,7 +1367,7 @@ public class MainActivity extends AppCompatActivity {
         // Android 7.0+ 必须用 FileProvider 封装 Uri
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             apkUri = FileProvider.getUriForFile(this,
-                    getPackageName() + ".fileprovider", // 和Manifest中的authorities一致
+                    getFileProviderAuthority(), // 和Manifest中的authorities一致
                     apkFile);
             // 授予临时读取权限
             installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

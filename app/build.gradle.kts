@@ -4,20 +4,28 @@ plugins {
 
 android {
     namespace = "com.shengma.webshell"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
+
+    flavorDimensions += "app"
 
     defaultConfig {
-        applicationId = "com.shengma.webshell"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
-
+        versionName = "0.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // 两个包名（核心，无任何重复定义）
+    productFlavors {
+        create("newPlatform") {
+            dimension = "app"
+            applicationId = "com.shengma.webshell"
+        }
+        create("oldPlatform") {
+            dimension = "app"
+            applicationId = "com.shengma.shipwebshell"
+        }
     }
 
     buildTypes {
@@ -29,9 +37,14 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 }
 

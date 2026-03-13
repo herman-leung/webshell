@@ -9,8 +9,8 @@
         <!-- 点击后跳转的 Intent -->
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.shengma.webshell"
-            android:targetClass="com.shengma.webshell.MainActivity">
+            android:targetPackage="${applicationId}"
+            android:targetClass="${applicationId}.MainActivity">
             <!-- 核心：传递 URL 参数，key 自定义（比如 jump_url） -->
             <extra android:name="jump_url" android:value="https://znh5.smshj.com" />
         </intent>
