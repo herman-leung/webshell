@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     // private static final String DEFAULT_URL = "https://192.168.1.46:80/";
    private static String DEFAULT_URL = "https://twm-h5.smshj.com/";
 
-    private static final String BASE_APK_URL = "https://kmgapi.test.smshj.com/";
+    private static final String BASE_APK_URL = "https://apikmg.smshj.com/";
     private static final String TAG = "GraphqlDemo";
     private static final String TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzczMTA3NzY5fQ.7MF69Q7XJCSrE5qL-2wms3yw6D17r5sTHo7SYGVJMao";
 
@@ -994,7 +994,7 @@ public class MainActivity extends AppCompatActivity {
                 .baseUrl(BASE_APK_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-
+        Log.i(TAG, "Retrofit实例创建成功，准备调用接口..." + BASE_APK_URL);
         GraphqlApiService apiService = retrofit.create(GraphqlApiService.class);
         // 3. 构建请求参数
         // 3.1 构建 GraphQL 查询语句（和 curl 中的 query 一致）
@@ -1038,10 +1038,10 @@ public class MainActivity extends AppCompatActivity {
         // headers.put("authorization", "Bearer " + TOKEN);
         headers.put("cache-control", "no-cache");
         headers.put("content-type", "application/json");
-        headers.put("origin", "https://kmg.test.smshj.com");
+        headers.put("origin", "https://zn.smshj.com");
         headers.put("pragma", "no-cache");
         headers.put("priority", "u=1, i");
-        headers.put("referer", "https://kmg.test.smshj.com/");
+        headers.put("referer", "https://zn.smshj.com/");
         headers.put("sec-ch-ua", "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"");
         headers.put("sec-ch-ua-mobile", "?0");
         headers.put("sec-ch-ua-platform", "\"Windows\"");
