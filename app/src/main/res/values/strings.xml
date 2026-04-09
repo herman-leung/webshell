@@ -4,4 +4,70 @@
     <string name="shortcut_home_short">老平台入口</string>
 
     <string name="clear_cache_short">清除缓存</string>
+
+    <string name="update_dialog_title">提示</string>
+    <string name="update_dialog_content">有新版本发布，请更新安装后使用</string>
+    <string name="downloading">下载中...</string>
+    <string name="toast_scan_error">扫码功能异常：</string>
+
+    <string name="hello_world">Hello World!</string>
+    <string name="btn_show_dialog">显示弹窗</string>
+    <string name="dialog_title">温馨提示</string>
+    <string name="dialog_content">这是美化后的弹窗，只能点击确定按钮关闭哦～</string>
+
+    <string name="scan_hint">将二维码放入框内\n双指可缩放</string>
+    <string name="btn_back">返回</string>
+    <string name="btn_torch">闪光灯</string>
+    <string name="toast_torch_on">闪光灯已开启</string>
+    <string name="toast_torch_off">闪光灯已关闭</string>
+    <string name="toast_no_torch">设备不支持闪光灯</string>
+    <string name="toast_camera_start_failed">相机启动失败</string>
+    <string name="toast_need_camera_permission">需要相机权限才能扫码</string>
+    <string name="btn_confirm">确定</string>
+    <string name="btn_install">安装</string>
+    <string name="btn_settings">去设置</string>
+    <string name="btn_cancel">取消</string>
+    
+    <string name="permission_dialog_title">权限提示</string>
+    <string name="permission_dialog_message">需要%s才能执行此操作，请在设置中开启</string>
+    <string name="permission_generic">权限</string>
+    <string name="permission_camera">相机权限</string>
+    <string name="permission_storage">存储权限</string>
+    
+    <string name="toast_image_loaded">图片已加载</string>
+    <string name="toast_base64_failed">Base64转换失败</string>
+    <string name="toast_image_path_failed">获取图片路径失败</string>
+    <string name="toast_camera_success">拍照成功</string>
+    <string name="toast_camera_image_failed">获取拍照图片失败</string>
+    <string name="toast_scan_failed">扫码失败</string>
+    <string name="toast_scan_cancel">扫码取消</string>
+    <string name="toast_scan_process_failed">扫码结果处理失败</string>
+    <string name="toast_create_image_failed">创建图片文件失败</string>
+    <string name="toast_response_failed">响应失败：</string>
+    <string name="toast_request_failed">请求失败：</string>
+    <string name="toast_start_download_apk">开始下载APK...</string>
+    <string name="toast_download_failed">下载失败：</string>
+    <string name="toast_download_failed_response">下载失败：响应码</string>
+    <string name="toast_download_complete">下载完成，开始安装...</string>
+    <string name="toast_apk_not_exist">APK文件不存在</string>
+    <string name="toast_install_failed">安装失败：</string>
+    <string name="toast_enable_unknown_sources">请开启安装未知来源应用权限</string>
+    <string name="toast_need_permission">需要</string>
+    <string name="toast_need_permission_end">才能执行此操作</string>
+    
+    <string name="toast_file_download_failed">文件下载失败，请检查URL</string>
+    <string name="toast_file_save_success">文件保存成功：/下载/%1$s</string>
+    <string name="toast_file_save_failed">文件保存失败</string>
+    <string name="toast_save_exception">保存异常：</string>
+    <string name="toast_file_link_inaccessible">文件链接无法访问：</string>
+    <string name="toast_base64_empty">Base64数据为空</string>
+    <string name="toast_base64_decode_failed">Base64解码失败</string>
+    <string name="toast_base64_save_success">Base64文件保存成功：/下载/%1$s</string>
+    <string name="toast_base64_save_failed">Base64文件保存失败</string>
+    <string name="toast_base64_save_exception">Base64保存异常：</string>
+    <string name="toast_file_path_empty">文件路径不能为空</string>
+    <string name="toast_file_not_exist">文件不存在：</string>
+    <string name="toast_unsupported_file_type">不支持的文件类型：</string>
+    <string name="toast_no_app_to_open_file">未找到可打开该文件的应用</string>
+    <string name="toast_open_file_failed">打开文件失败：</string>
 </resources>

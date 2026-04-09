@@ -95,13 +95,16 @@ public class ScanActivity extends AppCompatActivity {
             if (camera.getCameraInfo().hasFlashUnit()) {
                 if (camera.getCameraInfo().getTorchState().getValue() == TorchState.ON) {
                     camera.getCameraControl().enableTorch(false);
-                    Toast.makeText(this, "闪光灯已关闭", Toast.LENGTH_SHORT).show();
+                    // 闪光灯已关闭
+                    Toast.makeText(this, getString(R.string.toast_torch_off), Toast.LENGTH_SHORT).show();
                 } else {
                     camera.getCameraControl().enableTorch(true);
-                    Toast.makeText(this, "闪光灯已开启", Toast.LENGTH_SHORT).show();
+                    // 闪光灯已开启
+                    Toast.makeText(this, getString(R.string.toast_torch_on), Toast.LENGTH_SHORT).show();    
                 }
             } else {
-                Toast.makeText(this, "设备不支持闪光灯", Toast.LENGTH_SHORT).show();
+                // 设备不支持闪光灯
+                Toast.makeText(this, getString(R.string.toast_no_torch), Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -140,7 +143,8 @@ public class ScanActivity extends AppCompatActivity {
 
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "相机启动失败", e);
-                Toast.makeText(this, "相机启动失败", Toast.LENGTH_SHORT).show();
+                // 相机启动失败
+                Toast.makeText(this, getString(R.string.toast_camera_start_failed), Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -186,7 +190,8 @@ public class ScanActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
             } else {
-                Toast.makeText(this, "需要相机权限才能扫码", Toast.LENGTH_SHORT).show();
+                // 需要相机权限才能扫描
+                Toast.makeText(this, getString(R.string.toast_need_camera_permission), Toast.LENGTH_SHORT).show();
                 finish();
             }
         }

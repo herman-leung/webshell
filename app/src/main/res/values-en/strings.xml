@@ -1,0 +1,74 @@
+<resources>
+    <string name="app_name">Shengma Admin</string>
+
+    <string name="shortcut_home_short">Old Platform Entry</string>
+
+    <string name="clear_cache_short">Clear Cache</string>
+
+    <string name="update_dialog_title">Notice</string>
+    <string name="update_dialog_content">A new version is available, please update and install to use</string>
+    <string name="downloading">Downloading...</string>
+    <string name="toast_scan_error">Scan function error: </string>
+
+    <string name="hello_world">Hello World!</string>
+    <string name="btn_show_dialog">Show Dialog</string>
+    <string name="dialog_title">Friendly Reminder</string>
+    <string name="dialog_content">This is a beautified dialog, you can only close it by clicking the OK button～</string>
+
+    <string name="scan_hint">Place the QR code in the frame\nPinch to zoom</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_torch">Flashlight</string>
+    <string name="toast_torch_on">Flashlight is on</string>
+    <string name="toast_torch_off">Flashlight is off</string>
+    <string name="toast_no_torch">Device does not support flashlight</string>
+    <string name="toast_camera_start_failed">Failed to start camera</string>
+    <string name="toast_need_camera_permission">Need camera permission to scan</string>
+    <string name="btn_confirm">OK</string>
+    <string name="btn_install">Install</string>
+    <string name="btn_settings">Go to Settings</string>
+    <string name="btn_cancel">Cancel</string>
+    
+    <string name="permission_dialog_title">Permission Notice</string>
+    <string name="permission_dialog_message">Need %s to perform this operation, please enable it in settings</string>
+    
+    <string name="permission_generic">permission</string>
+    <string name="permission_camera">camera permission</string>
+    <string name="permission_storage">storage permission</string>
+    
+    <string name="toast_image_loaded">Image loaded</string>
+    <string name="toast_base64_failed">Base64 conversion failed</string>
+    <string name="toast_image_path_failed">Failed to get image path</string>
+    <string name="toast_camera_success">Camera capture successful</string>
+    <string name="toast_camera_image_failed">Failed to get captured image</string>
+    <string name="toast_scan_failed">Scan failed</string>
+    <string name="toast_scan_cancel">Scan cancelled</string>
+    <string name="toast_scan_process_failed">Failed to process scan result</string>
+    <string name="toast_create_image_failed">Failed to create image file</string>
+    <string name="toast_response_failed">Response failed: </string>
+    <string name="toast_request_failed">Request failed: </string>
+    <string name="toast_start_download_apk">Starting APK download...</string>
+    <string name="toast_download_failed">Download failed: </string>
+    <string name="toast_download_failed_response">Download failed: Response code </string>
+    <string name="toast_download_complete">Download complete, starting installation...</string>
+    <string name="toast_apk_not_exist">APK file does not exist</string>
+    <string name="toast_install_failed">Installation failed: </string>
+    <string name="toast_enable_unknown_sources">Please enable installation from unknown sources</string>
+    <string name="toast_need_permission">Need </string>
+    <string name="toast_need_permission_end"> to perform this operation</string>
+    
+    <string name="toast_file_download_failed">File download failed, please check URL</string>
+    <string name="toast_file_save_success">File saved successfully: /Download/</string>
+    <string name="toast_file_save_failed">File save failed</string>
+    <string name="toast_save_exception">Save exception: </string>
+    <string name="toast_file_link_inaccessible">File link inaccessible: </string>
+    <string name="toast_base64_empty">Base64 data is empty</string>
+    <string name="toast_base64_decode_failed">Base64 decoding failed</string>
+    <string name="toast_base64_save_success">Base64 file saved successfully: /Download/</string>
+    <string name="toast_base64_save_failed">Base64 file save failed</string>
+    <string name="toast_base64_save_exception">Base64 save exception: </string>
+    <string name="toast_file_path_empty">File path cannot be empty</string>
+    <string name="toast_file_not_exist">File does not exist: </string>
+    <string name="toast_unsupported_file_type">Unsupported file type: </string>
+    <string name="toast_no_app_to_open_file">No app found to open this file</string>
+    <string name="toast_open_file_failed">Failed to open file: </string>
+</resources>

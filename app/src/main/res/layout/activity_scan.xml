@@ -23,7 +23,7 @@
         android:layout_above="@+id/scanFrame"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="20dp"
-        android:text="将二维码放入框内\n双指可缩放"
+        android:text="@string/scan_hint"
         android:textColor="@android:color/white"
         android:textSize="16sp"
         android:gravity="center" /> -->
@@ -38,7 +38,7 @@
         android:layout_margin="16dp"
         android:background="?android:attr/selectableItemBackground"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:contentDescription="返回" />
+        android:contentDescription="@string/btn_back" />
 
     <!-- 闪光灯按钮 -->
     <ImageButton
@@ -50,6 +50,6 @@
         android:layout_margin="16dp"
         android:background="?android:attr/selectableItemBackground"
         android:src="@android:drawable/btn_star"
-        android:contentDescription="闪光灯" />
+        android:contentDescription="@string/btn_torch" />
 
 </RelativeLayout>

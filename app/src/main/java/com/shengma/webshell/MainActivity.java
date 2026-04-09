@@ -1,6 +1,7 @@
 package com.shengma.webshell;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -168,14 +169,14 @@ public class MainActivity extends AppCompatActivity {
                                     String jsCode = "javascript:onGalleryImageSelected('data:image/" + imageType + ";base64," + base64 + "')";
                                     Log.i("MainActivity", "执行JS回调，Base64长度: " + base64.length());
                                     webView.evaluateJavascript(jsCode, null);
-                                    Toast.makeText(MainActivity.this, "图片已加载", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(MainActivity.this, getString(R.string.toast_image_loaded), Toast.LENGTH_SHORT).show();
                                 } else {
                                     Log.e("MainActivity", "Base64转换失败");
-                                    Toast.makeText(MainActivity.this, "Base64转换失败", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(MainActivity.this, getString(R.string.toast_base64_failed), Toast.LENGTH_SHORT).show();
                                 }
                             } else {
                                 Log.e("MainActivity", "图片路径为空");
-                                Toast.makeText(MainActivity.this, "获取图片路径失败", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, getString(R.string.toast_image_path_failed), Toast.LENGTH_SHORT).show();
                             }
                         }
                     } else {
@@ -202,14 +203,14 @@ public class MainActivity extends AppCompatActivity {
                                 String jsCode = "javascript:onCameraImageCaptured('data:image/" + imageType + ";base64," + base64 + "')";
                                 Log.i("MainActivity", "执行JS回调，Base64长度: " + base64.length());
                                 webView.evaluateJavascript(jsCode, null);
-                                Toast.makeText(MainActivity.this, "拍照成功", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, getString(R.string.toast_camera_success), Toast.LENGTH_SHORT).show();
                             } else {
                                 Log.e("MainActivity", "Base64转换失败");
-                                Toast.makeText(MainActivity.this, "Base64转换失败", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, getString(R.string.toast_base64_failed), Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             Log.e("MainActivity", "拍照图片路径为空");
-                            Toast.makeText(MainActivity.this, "获取拍照图片失败", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, getString(R.string.toast_camera_image_failed), Toast.LENGTH_SHORT).show();
                         }
                     } else {
                         Log.i("MainActivity", "用户取消拍照");
@@ -235,15 +236,15 @@ public class MainActivity extends AppCompatActivity {
                                 // Toast.makeText(MainActivity.this, "扫码成功", Toast.LENGTH_SHORT).show();
                             } else {
                                 Log.i("MainActivity", "扫码内容为空");
-                                Toast.makeText(MainActivity.this, "扫码失败", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, getString(R.string.toast_scan_failed), Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             Log.i("MainActivity", "用户取消扫码或无数据");
-                            Toast.makeText(MainActivity.this, "扫码取消", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, getString(R.string.toast_scan_cancel), Toast.LENGTH_SHORT).show();
                         }
                     } catch (Exception e) {
                         Log.e("MainActivity", "处理扫码结果异常", e);
-                        Toast.makeText(MainActivity.this, "扫码结果处理失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.toast_scan_process_failed), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -298,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
             cameraLauncher.launch(intent);
         } else {
-            Toast.makeText(this, "创建图片文件失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_create_image_failed), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -343,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
             scanLauncher.launch(scanIntent);
         } catch (Exception e) {
             Log.e("MainActivity", "打开扫码器失败", e);
-            Toast.makeText(this, "扫码功能异常：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_scan_error) + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -634,6 +635,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // 供H5调用的保存文件方法（必须加@JavascriptInterface注解）
+        @SuppressLint("StringFormatInvalid")
         @JavascriptInterface
         public void saveFile(String fileUrl, String fileName) {
             Log.i("MainActivity", "fileUrl" + fileUrl);
@@ -643,25 +645,28 @@ public class MainActivity extends AppCompatActivity {
                     // 1. 从URL下载文件字节流
                     byte[] fileData = downloadFile(fileUrl);
                     if (fileData == null) {
-                        showToast("文件下载失败，请检查URL");
+                        // 文件下载失败，请检查URL
+                        showToast(getString(R.string.toast_file_download_failed));
                         return;
                     }
-                    System.out.println("开始下载？？？？");
 
                     // 2. 保存文件到本地（手机下载目录）
                     boolean success = saveFileToLocal(fileData, fileName);
                     if (success) {
-                        showToast("文件保存成功：/下载/" + fileName);
+                        // 文件保存成功：/下载/ + 文件名
+                        showToast(getString(R.string.toast_file_save_success, fileName));
                         // 回调H5告知成功（可选）
                         callJsFunction("onFileSaveSuccess('" + fileName + "')");
                     } else {
-                        showToast("文件保存失败");
+                        // 文件保存失败
+                        showToast(getString(R.string.toast_file_save_failed));
                         // 回调H5告知失败（可选）
-                        callJsFunction("onFileSaveError('保存失败')");
+                        callJsFunction("onFileSaveError('" + getString(R.string.toast_file_save_failed) + "')");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    showToast("保存异常：" + e.getMessage());
+                    // 保存异常： + 异常信息
+                    showToast(getString(R.string.toast_save_exception, e.getMessage()));
                     callJsFunction("onFileSaveError('" + e.getMessage() + "')");
                 }
             }).start();
@@ -690,7 +695,8 @@ public class MainActivity extends AppCompatActivity {
                     conn.disconnect();
                     return bos.toByteArray();
                 } else {
-                    showToast("文件链接无法访问：" + conn.getResponseCode());
+                    // 文件链接无法访问：
+                    showToast(getString(R.string.toast_file_link_inaccessible) + conn.getResponseCode());
                     return null;
                 }
             } catch (Exception e) {
@@ -737,8 +743,9 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     // 1. 校验Base64数据
                     if (base64Data == null || base64Data.isEmpty()) {
-                        showToast("Base64数据为空");
-                        callJsFunction("onFileSaveError('Base64数据为空')");
+                        // base64数据为空
+                        showToast(getString(R.string.toast_base64_empty));
+                        callJsFunction("onFileSaveError('" + getString(R.string.toast_base64_empty) + "')");
                         return;
                     }
 
@@ -751,24 +758,28 @@ public class MainActivity extends AppCompatActivity {
                     // 3. Base64解码为字节数组
                     byte[] fileData = android.util.Base64.decode(pureBase64, android.util.Base64.DEFAULT);
                     if (fileData.length == 0) {
-                        showToast("Base64解码失败");
-                        callJsFunction("onFileSaveError('Base64解码失败')");
+                        // base64数据解码失败
+                        showToast(getString(R.string.toast_base64_decode_failed));
+                        callJsFunction("onFileSaveError('" + getString(R.string.toast_base64_decode_failed) + "')");
                         return;
                     }
 
                     // 4. 复用原有保存逻辑写入文件
                     boolean success = saveFileToLocal(fileData, fileName);
                     if (success) {
-                        showToast("Base64文件保存成功：/下载/" + fileName);
+                        // showToast("Base64文件保存成功：/下载/" + fileName);
+                        showToast(getString(R.string.toast_base64_save_success) + fileName);
                         callJsFunction("onFileSaveSuccess('" + fileName + "')");
                     } else {
-                        showToast("Base64文件保存失败");
-                        callJsFunction("onFileSaveError('保存失败')");
+                        // Base64文件保存失败
+                        showToast(getString(R.string.toast_base64_save_failed));
+                        callJsFunction("onFileSaveError('" + getString(R.string.toast_base64_save_failed) + "')");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    showToast("Base64保存异常：" + e.getMessage());
-                    callJsFunction("onFileSaveError('" + e.getMessage() + "')");
+                    // Base64保存异常：
+                    showToast(getString(R.string.toast_base64_save_exception, e.getMessage()));
+                    callJsFunction("onFileSaveError('" + getString(R.string.toast_base64_save_exception, e.getMessage()) + "')");
                 }
             }).start();
         }
@@ -797,16 +808,18 @@ public class MainActivity extends AppCompatActivity {
             Log.i("MainActivity", "openDocument called with filePath: " + filePath + ", fileType: " + fileType);
             // 1. 校验参数
             if (filePath == null || filePath.isEmpty()) {
-                showToast("文件路径不能为空");
-                callJsFunction("onOpenDocumentError('文件路径不能为空')");
+                // 文件路径不能为空
+                showToast(getString(R.string.toast_file_path_empty));
+                callJsFunction("onOpenDocumentError('" + getString(R.string.toast_file_path_empty) + "')");
                 return;
             }
 
             // 2. 检查文件是否存在
             File file = new File(filePath);
             if(!file.exists()) {
-                showToast("文件不存在：" + filePath);
-                callJsFunction("onOpenDocumentError('文件不存在：" + filePath + "')");
+                // 文件不存在:
+                showToast(getString(R.string.toast_file_not_exist) + filePath);
+                callJsFunction("onOpenDocumentError('" + getString(R.string.toast_file_not_exist) + filePath + "')");
                 return;
             }
 
@@ -814,8 +827,9 @@ public class MainActivity extends AppCompatActivity {
                 // 3. 获取正确的MIME类型
                 String mimeType = getMimeType(fileType, filePath);
                 if (mimeType == null) {
-                    showToast("不支持的文件类型：" + fileType);
-                    callJsFunction("onOpenDocumentError('不支持的文件类型：" + fileType + "')");
+                    // 文件不存在
+                    showToast(getString(R.string.toast_unsupported_file_type) + fileType);
+                    callJsFunction("onOpenDocumentError('" + getString(R.string.toast_unsupported_file_type) + fileType + "')");
                     return;
                 }
 
@@ -841,8 +855,9 @@ public class MainActivity extends AppCompatActivity {
                 // 7. 检查是否有应用能处理该Intent（避免崩溃）
                 List<ResolveInfo> resolveInfos = mActivity.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
                 if (resolveInfos.isEmpty()) {
-                    showToast("未找到可打开该文件的应用");
-                    callJsFunction("onOpenDocumentError('未找到可打开该文件的应用')");
+                    // 未找到可打开该文件的应用
+                    showToast(mActivity.getString(R.string.toast_no_app_to_open_file));
+                    callJsFunction("onOpenDocumentError('" + mActivity.getString(R.string.toast_no_app_to_open_file) + "')");
                     return;
                 }
 
@@ -855,7 +870,8 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                String errorMsg = "打开文件失败：" + e.getMessage();
+                // 打开文件失败
+                String errorMsg = mActivity.getString(R.string.toast_open_file_failed) + e.getMessage();
                 showToast(errorMsg);
                 callJsFunction("onOpenDocumentError('" + errorMsg + "')");
             }
@@ -898,7 +914,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 显示Toast（必须在主线程执行）
         private void showToast(String msg) {
-            mActivity.runOnUiThread(() -> Toast.makeText(mActivity, msg, Toast.LENGTH_SHORT).show());
+            mActivity.runOnUiThread(() -> Toast.makeText(mActivity, msg, Toast.LENGTH_LONG).show());
         }
 
         // 调用H5的JS函数（回调结果）
@@ -940,6 +956,8 @@ public class MainActivity extends AppCompatActivity {
             if (uri == null) {
                 throw new IOException("无法创建 MediaStore 条目");
             }
+            // 保存Uri供安装时使用
+            apkMediaUri = uri;
             return getContentResolver().openOutputStream(uri);
         } else {
             // 9 及以下仍旧使用传统路径（需 WRITE_EXTERNAL_STORAGE 权限）
@@ -1081,7 +1099,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // 响应失败（比如 HTTP 401/404/500）
                     Log.e(TAG, "响应失败：状态码=" + response.code());
-                    Toast.makeText(MainActivity.this, "响应失败：" + response.code(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, getString(R.string.toast_response_failed) + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -1089,7 +1107,7 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(Call<GraphqlResponse> call, Throwable t) {
                 // 请求失败（网络错误、URL 错误等）
                 Log.e(TAG, "请求失败：" + t.getMessage(), t);
-                Toast.makeText(MainActivity.this, "请求失败：" + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, getString(R.string.toast_request_failed) + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1101,6 +1119,8 @@ public class MainActivity extends AppCompatActivity {
     // 进度条和进度文本引用
     private ProgressBar progressBar;
     private TextView tvProgress;
+    // MediaStore返回的APK文件Uri（Android 10+）
+    private Uri apkMediaUri;
 
     /**
      * 显示「只能点确定关闭」的弹窗
@@ -1133,8 +1153,10 @@ public class MainActivity extends AppCompatActivity {
         // 可选：动态修改弹窗标题/内容
         TextView tvTitle = dialogView.findViewById(R.id.tv_dialog_title);
         TextView tvContent = dialogView.findViewById(R.id.tv_dialog_content);
-        tvTitle.setText("提示"); // 自定义标题
-        tvContent.setText("有新版本发布，请更新安装后使用!!!"); // 自定义内容
+        // 提示
+        tvTitle.setText(getString(R.string.update_dialog_title)); // 自定义标题
+        // 有新版本发布,请安装后使用
+        tvContent.setText(getString(R.string.update_dialog_content)); // 自定义内容
 
         // 5. 显示弹窗
         updateDialog.show();
@@ -1178,13 +1200,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 2. 检查存储权限（所有Android版本都需要检查）
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_PERMISSION_CODE);
-            return;
+        // 2. 检查存储权限（仅Android 10以下需要）
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_PERMISSION_CODE);
+                return;
+            }
         }
 
         // 权限全部通过，显示进度条并开始下载
@@ -1193,7 +1217,8 @@ public class MainActivity extends AppCompatActivity {
             if (btnConfirm != null) {
                 // 禁用确定按钮，防止重复点击
                 btnConfirm.setEnabled(false);
-                btnConfirm.setText("下载中...");
+                // 下载中...
+                btnConfirm.setText(getString(R.string.downloading));
             }
             // 显示进度条
             if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
@@ -1207,7 +1232,8 @@ public class MainActivity extends AppCompatActivity {
      * 从 OSS 下载 APK 文件
      */
     private void downloadApkFromOSS() {
-        Toast.makeText(this, "开始下载APK...", Toast.LENGTH_SHORT).show();
+        // 开始下载APK
+        Toast.makeText(this, getString(R.string.toast_start_download_apk), Toast.LENGTH_SHORT).show();
 
         // 先确保 apkFile 已经被设置
         if (apkFile == null) {
@@ -1236,14 +1262,16 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
                 // 下载失败（主线程更新UI）
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "下载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    // 下载失败:
+                    Toast.makeText(MainActivity.this, getString(R.string.toast_download_failed) + e.getMessage(), Toast.LENGTH_SHORT).show();
                     Log.e(TAG, "下载失败", e);
                     // 恢复确定按钮状态
                     if (updateDialog != null && updateDialog.isShowing()) {
                         Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
                         if (btnConfirm != null) {
                             btnConfirm.setEnabled(true);
-                            btnConfirm.setText("确定");
+                            // 确定
+                            btnConfirm.setText(getString(R.string.btn_confirm));
                         }
                         // 隐藏进度条
                         if (progressBar != null) progressBar.setVisibility(View.GONE);
@@ -1256,13 +1284,15 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
                 if (!response.isSuccessful()) {
                     runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "下载失败：响应码" + response.code(), Toast.LENGTH_SHORT).show();
+                        // 下载失败:响应码
+                        Toast.makeText(MainActivity.this, getString(R.string.toast_download_failed_response) + response.code(), Toast.LENGTH_SHORT).show();
                         // 恢复确定按钮状态
                         if (updateDialog != null && updateDialog.isShowing()) {
                             Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
                             if (btnConfirm != null) {
                                 btnConfirm.setEnabled(true);
-                                btnConfirm.setText("确定");
+                                // 确定
+                                btnConfirm.setText(getString(R.string.btn_confirm));
                             }
                             // 隐藏进度条
                             if (progressBar != null) progressBar.setVisibility(View.GONE);
@@ -1274,14 +1304,21 @@ public class MainActivity extends AppCompatActivity {
 
                 // 读取响应流并写入文件
                 InputStream inputStream = null;
-                FileOutputStream outputStream = null;
+                OutputStream outputStream = null;
                 try {
                     long responseLength = response.body() != null ? response.body().contentLength() : -1;
                     Log.i(TAG, "响应长度: " + responseLength);
                     inputStream = response.body().byteStream();
                     Log.i(TAG, "inputStream: " + inputStream);
                     Log.i(TAG, "apkFile: " + apkFile);
-                    outputStream = (FileOutputStream)openPublicDownloadStream(apkFile.getName());
+                    // 根据Android版本选择不同的输出流
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // Android 10+ 使用MediaStore API写入公共目录
+                        outputStream = openPublicDownloadStream(apkFile.getName());
+                    } else {
+                        // Android 10以下直接写入文件
+                        outputStream = new FileOutputStream(apkFile);
+                    }
                     Log.i(TAG, "outputStream: " + outputStream);
                     byte[] buffer = new byte[4096];
                     int len;
@@ -1311,7 +1348,8 @@ public class MainActivity extends AppCompatActivity {
                             Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
                             if (btnConfirm != null) {
                                 btnConfirm.setEnabled(true);
-                                btnConfirm.setText("安装");
+                                // 安装
+                                btnConfirm.setText(getString(R.string.btn_install));
                                 btnConfirm.setOnClickListener(v -> {
                                     // 安装APK
                                     installApk();
@@ -1322,7 +1360,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                     runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "下载完成，开始安装...", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.toast_download_complete), Toast.LENGTH_SHORT).show();
                         installApk();
                     });
                 } catch (Exception e) {
@@ -1330,13 +1368,13 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG, "下载失败", e);
                     // 主线程提示
                     runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "下载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.toast_download_failed) + e.getMessage(), Toast.LENGTH_SHORT).show();
                         // 恢复确定按钮状态
                         if (updateDialog != null && updateDialog.isShowing()) {
                             Button btnConfirm = updateDialog.findViewById(R.id.btn_dialog_confirm);
                             if (btnConfirm != null) {
                                 btnConfirm.setEnabled(true);
-                                btnConfirm.setText("确定");
+                                btnConfirm.setText(getString(R.string.btn_confirm));
                             }
                             // 隐藏进度条
                             if (progressBar != null) progressBar.setVisibility(View.GONE);
@@ -1356,23 +1394,31 @@ public class MainActivity extends AppCompatActivity {
      * 调用系统安装程序安装 APK
      */
     private void installApk() {
-        if (!apkFile.exists()) {
-            Toast.makeText(this, "APK文件不存在", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         Intent installIntent = new Intent(Intent.ACTION_VIEW);
-        Uri apkUri;
+        Uri apkUri = null;
 
-        // Android 7.0+ 必须用 FileProvider 封装 Uri
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            apkUri = FileProvider.getUriForFile(this,
-                    getFileProviderAuthority(), // 和Manifest中的authorities一致
-                    apkFile);
+        // 根据Android版本选择不同的安装方式
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && apkMediaUri != null) {
+            // Android 10+ 使用MediaStore返回的Uri
+            apkUri = apkMediaUri;
             // 授予临时读取权限
             installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } else if (apkFile != null && apkFile.exists()) {
+            // Android 10以下或MediaStore Uri不可用时，使用传统文件路径
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                // Android 7.0+ 必须用 FileProvider 封装 Uri
+                apkUri = FileProvider.getUriForFile(this,
+                        getFileProviderAuthority(), // 和Manifest中的authorities一致
+                        apkFile);
+                // 授予临时读取权限
+                installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+                // Android 7.0以下直接使用文件Uri
+                apkUri = Uri.fromFile(apkFile);
+            }
         } else {
-            apkUri = Uri.fromFile(apkFile);
+            Toast.makeText(this, "APK文件不存在", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         // 设置安装参数
@@ -1383,7 +1429,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             startActivity(installIntent);
         } catch (Exception e) {
-            Toast.makeText(this, "安装失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_install_failed) + e.getMessage(), Toast.LENGTH_SHORT).show();
             Log.e(TAG, "安装失败", e);
         }
     }
@@ -1400,9 +1446,10 @@ public class MainActivity extends AppCompatActivity {
                 if (getPackageManager().canRequestPackageInstalls()) {
                    checkPermissionAndDownload(); // 权限已开，继续下载
                 } else {
-                    Toast.makeText(this, "请开启安装未知来源应用权限", Toast.LENGTH_SHORT).show();
+                    // 请开启安装未知来源应用权限
+                    Toast.makeText(this, getString(R.string.toast_enable_unknown_sources), Toast.LENGTH_SHORT).show();
                 }
-            }
+            }   
         }
     }
 
@@ -1453,14 +1500,17 @@ public class MainActivity extends AppCompatActivity {
                     }
                     
                     new AlertDialog.Builder(this)
-                            .setTitle("权限提示")
-                            .setMessage("需要" + permissionName + "才能执行此操作，请在设置中开启")
-                            .setPositiveButton("去设置", (dialog, which) -> {
+                            // .setTitle("权限提示")
+                            .setTitle(getString(R.string.permission_dialog_title))
+                            // 需要 xxx 权限才能执行此操作, 请在设置中开启
+                            .setMessage(getString(R.string.permission_dialog_message, permissionName)) // 使用占位符格式化字符串
+                            .setPositiveButton(getString(R.string.btn_settings), (dialog, which) -> {
                                 Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                                 intent.setData(Uri.parse("package:" + getPackageName()));
                                 startActivityForResult(intent, REQUEST_PERMISSION_CODE);
                             })
-                            .setNegativeButton("取消", null)
+                            // 取消
+                            .setNegativeButton(getString(R.string.btn_cancel), null)
                             .show();
                 } else {
                     // 用户拒绝了权限但未勾选"不再询问"
@@ -1472,7 +1522,8 @@ public class MainActivity extends AppCompatActivity {
                                permissions[0].equals(Manifest.permission.READ_MEDIA_IMAGES)) {
                         permissionName = "存储权限";
                     }
-                    Toast.makeText(this, "需要" + permissionName + "才能执行此操作", Toast.LENGTH_SHORT).show();
+                    // 您需要授予 xxx 权限才能执行此操作
+                    Toast.makeText(this, getString(R.string.permission_dialog_message, permissionName), Toast.LENGTH_SHORT).show();
                 }
             }
         }
