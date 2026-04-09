@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // 老平台
             DEFAULT_URL = "https://znh5.smshj.com";
+            // DEFAULT_URL = "https://192.168.1.46:80/"
         }
 
 
@@ -135,10 +136,11 @@ public class MainActivity extends AppCompatActivity {
         handleIntent(getIntent());
 
         try{
-            if(packageName.equals("webshell")) { // 新平台
-                getAPKFile(APK_FILE_NAME);
-            } else {
+            // 老平台
+            if(packageName.equals("shipwebshell")) { // 老平台
                 getAPKFile(APK_FILE_NAME_OLD);
+            } else {
+                getAPKFile(APK_FILE_NAME);
             }
 
         } catch (Exception e) {
@@ -1033,7 +1035,7 @@ public class MainActivity extends AppCompatActivity {
         java.util.Map<String, String> headers = new java.util.HashMap<>();
         headers.put("accept", "*/*");
         headers.put("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
-        headers.put("authorization", "Bearer " + TOKEN);
+        // headers.put("authorization", "Bearer " + TOKEN);
         headers.put("cache-control", "no-cache");
         headers.put("content-type", "application/json");
         headers.put("origin", "https://kmg.test.smshj.com");
@@ -1490,13 +1492,13 @@ public class MainActivity extends AppCompatActivity {
                 boolean showRationale = ActivityCompat.shouldShowRequestPermissionRationale(this, permissions[0]);
                 if (!showRationale) {
                     // 用户勾选了"不再询问"，引导用户去设置页面
-                    String permissionName = "权限";
+                    String permissionName = getString(R.string.permission_generic);
                     if (permissions[0].equals(Manifest.permission.CAMERA)) {
-                        permissionName = "相机权限";
+                        permissionName = getString(R.string.permission_camera);
                     } else if (permissions[0].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) || 
                                permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) ||
                                permissions[0].equals(Manifest.permission.READ_MEDIA_IMAGES)) {
-                        permissionName = "存储权限";
+                        permissionName = getString(R.string.permission_storage);
                     }
                     
                     new AlertDialog.Builder(this)
@@ -1514,13 +1516,13 @@ public class MainActivity extends AppCompatActivity {
                             .show();
                 } else {
                     // 用户拒绝了权限但未勾选"不再询问"
-                    String permissionName = "权限";
+                    String permissionName = getString(R.string.permission_generic);
                     if (permissions[0].equals(Manifest.permission.CAMERA)) {
-                        permissionName = "相机权限";
+                        permissionName = getString(R.string.permission_camera);
                     } else if (permissions[0].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) || 
                                permissions[0].equals(Manifest.permission.READ_EXTERNAL_STORAGE) ||
                                permissions[0].equals(Manifest.permission.READ_MEDIA_IMAGES)) {
-                        permissionName = "存储权限";
+                        permissionName = getString(R.string.permission_storage);
                     }
                     // 您需要授予 xxx 权限才能执行此操作
                     Toast.makeText(this, getString(R.string.permission_dialog_message, permissionName), Toast.LENGTH_SHORT).show();
